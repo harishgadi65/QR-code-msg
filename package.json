@@ -1,0 +1,13 @@
+{
+  "name": "qr-memory-platform",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "firebase emulators:start",
+    "build:client": "npm --prefix client run build",
+    "build:functions": "npm --prefix functions run build"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.29.1"
+  }
+}

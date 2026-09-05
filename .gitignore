@@ -1,0 +1,16 @@
+node_modules/
+dist/
+lib/
+lib-scripts/
+.env
+.env.local
+*.local
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+*.output
+.firebase/
+serviceAccountKey.json
+*.serviceaccount.json
