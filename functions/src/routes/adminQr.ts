@@ -100,7 +100,8 @@ router.get('/', async (req, res) => {
     const nextCursor = snap.docs.length === pageSize ? snap.docs[snap.docs.length - 1].id : null
 
     res.json({ items, nextCursor })
-  } catch {
+  } catch (err) {
+    console.error('admin QR list failed', err)
     res.status(500).json({ error: 'Failed to load QR codes.', code: 'LIST_FAILED' })
   }
 })

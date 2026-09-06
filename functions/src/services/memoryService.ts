@@ -50,8 +50,12 @@ export async function validateAndPublishDriveUpload(
 
 export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<void> {
   await Promise.all([
-    doc.photoDriveId ? deleteFile(doc.photoDriveId).catch(() => undefined) : undefined,
-    doc.videoDriveId ? deleteFile(doc.videoDriveId).catch(() => undefined) : undefined,
+    doc.photoDriveId
+      ? deleteFile(doc.photoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.photoDriveId}`, err))
+      : undefined,
+    doc.videoDriveId
+      ? deleteFile(doc.videoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.videoDriveId}`, err))
+      : undefined,
   ])
 }
 

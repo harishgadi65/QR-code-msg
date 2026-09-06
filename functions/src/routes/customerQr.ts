@@ -202,8 +202,11 @@ router.post('/:qrId/finalize', async (req, res) => {
 
     res.json({ status: 'content_added' })
   } catch (err) {
+    console.error('finalize failed', err)
     // Clean up whatever was uploaded and release the claim so the QR stays usable.
-    await Promise.all(uploadedFileIds.map((id) => deleteFile(id).catch(() => undefined)))
+    await Promise.all(
+      uploadedFileIds.map((id) => deleteFile(id).catch((e) => console.error(`Failed to delete Drive file ${id}`, e))),
+    )
     await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
 
     if (err instanceof MediaValidationError) {

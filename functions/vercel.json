@@ -4,7 +4,8 @@
   "functions": {
     "api/**/*.ts": {
       "memory": 512,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "node_modules/@ffprobe-installer/**"
     }
   },
   "rewrites": [

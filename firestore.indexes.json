@@ -34,6 +34,22 @@
         { "fieldPath": "batchId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "qrCodes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isTest", "order": "ASCENDING" },
+        { "fieldPath": "qrId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "qrCodes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isTest", "order": "ASCENDING" },
+        { "fieldPath": "scanCount", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

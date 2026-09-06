@@ -1,3 +1,4 @@
+import { chmodSync } from 'node:fs'
 import { writeFile, unlink } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -15,8 +16,18 @@ function getFfmpeg() {
       ([ffmpegModule, ffprobeModule]) => {
         const ffmpeg = (ffmpegModule as { default?: unknown }).default ?? ffmpegModule
         const ffprobeInstaller = (ffprobeModule as { default?: { path: string } }).default ?? ffprobeModule
+        const ffprobePath = (ffprobeInstaller as { path: string }).path
+        // The installer's own postinstall script (which chmods this binary) may not have
+        // run — e.g. Vercel's build blocks npm lifecycle scripts by default — so the file
+        // can end up non-executable even though it's present. Fix that defensively here
+        // rather than depending on the host's npm install behavior.
+        try {
+          chmodSync(ffprobePath, 0o755)
+        } catch {
+          // ignore: read-only filesystem, or already executable
+        }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(ffmpeg as any).setFfprobePath((ffprobeInstaller as { path: string }).path)
+        ;(ffmpeg as any).setFfprobePath(ffprobePath)
         return ffmpeg
       },
     )
