@@ -12,7 +12,7 @@ export const config = {
     rootFolderId: () => required('GOOGLE_DRIVE_ROOT_FOLDER_ID'),
   },
   limits: {
-    maxVideoDurationSeconds: Number(process.env.MAX_VIDEO_DURATION_SECONDS ?? 60),
+    maxVideoDurationSeconds: Number(process.env.MAX_VIDEO_DURATION_SECONDS ?? 30),
     maxVideoSizeMb: Number(process.env.MAX_VIDEO_SIZE_MB ?? 80),
     maxPhotoSizeMb: Number(process.env.MAX_PHOTO_SIZE_MB ?? 15),
     maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH ?? 500),

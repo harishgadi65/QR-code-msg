@@ -4,7 +4,7 @@ import { uploadFileToDrive } from '../../services/driveUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
 
-const MAX_VIDEO_SECONDS = 60
+const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_PHOTO_MB = 15
 const MAX_VIDEO_MB = 80
@@ -24,7 +24,6 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
-  const recordInputRef = useRef<HTMLInputElement>(null)
 
   const photoUrl = useMemo(() => (photoFile ? URL.createObjectURL(photoFile) : null), [photoFile])
   const videoUrl = useMemo(() => (videoFile ? URL.createObjectURL(videoFile) : null), [videoFile])
@@ -51,7 +50,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
       return
     }
     if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      setError(`Video must be smaller than ${MAX_VIDEO_MB}MB.`)
+      setError(`This video is too large (max ${MAX_VIDEO_MB}MB for a ${MAX_VIDEO_SECONDS}s clip). Please choose a shorter or lower-quality video.`)
       return
     }
     try {
@@ -181,21 +180,17 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
       <h1 className="mb-1 text-center text-xl font-semibold text-rose-600">❤️ Create a Special Memory</h1>
       <p className="mb-6 text-center text-sm text-slate-500">Add a photo, video or message to this gift.</p>
 
-      <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
         <button onClick={() => photoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
           📷 Add Photo
         </button>
         <button onClick={() => videoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
           🎥 Add Video
         </button>
-        <button onClick={() => recordInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
-          🎥 Record Video
-        </button>
       </div>
 
       <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onPhotoSelected(e.target.files?.[0])} />
       <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
-      <input ref={recordInputRef} type="file" accept="video/*" capture="environment" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
 
       {photoUrl && (
         <div className="mb-4 w-full">
