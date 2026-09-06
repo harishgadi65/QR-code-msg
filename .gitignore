@@ -14,3 +14,4 @@ pubsub-debug.log
 .firebase/
 serviceAccountKey.json
 *.serviceaccount.json
+.vercel

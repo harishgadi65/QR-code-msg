@@ -1,11 +1,28 @@
 import { writeFile, unlink } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import ffmpeg from 'fluent-ffmpeg'
-import ffprobeInstaller from '@ffprobe-installer/ffprobe'
 import { config } from '../config'
 
-ffmpeg.setFfprobePath(ffprobeInstaller.path)
+// Lazily imported: @ffprobe-installer/ffprobe eagerly requires a platform-specific binary
+// package (e.g. linux-x64) at module load time, which can be missing depending on how the
+// serverless host installed dependencies. Deferring the import means a broken ffprobe only
+// breaks video-duration checks, instead of crashing every request the app ever serves.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ffmpegPromise: Promise<any> | null = null
+function getFfmpeg() {
+  if (!ffmpegPromise) {
+    ffmpegPromise = Promise.all([import('fluent-ffmpeg'), import('@ffprobe-installer/ffprobe')]).then(
+      ([ffmpegModule, ffprobeModule]) => {
+        const ffmpeg = (ffmpegModule as { default?: unknown }).default ?? ffmpegModule
+        const ffprobeInstaller = (ffprobeModule as { default?: { path: string } }).default ?? ffprobeModule
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(ffmpeg as any).setFfprobePath((ffprobeInstaller as { path: string }).path)
+        return ffmpeg
+      },
+    )
+  }
+  return ffmpegPromise
+}
 
 export class MediaValidationError extends Error {
   code = 'MEDIA_INVALID'
@@ -33,11 +50,12 @@ export function validateVideoUpload(file: { mimetype: string; size: number }) {
 }
 
 export async function getVideoDurationSeconds(buffer: Buffer): Promise<number> {
+  const ffmpeg = await getFfmpeg()
   const tmpPath = path.join(os.tmpdir(), `probe-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`)
   await writeFile(tmpPath, buffer)
   try {
     return await new Promise<number>((resolve, reject) => {
-      ffmpeg.ffprobe(tmpPath, (err, data) => {
+      ffmpeg.ffprobe(tmpPath, (err: Error | null, data: { format: { duration?: number } }) => {
         if (err) {
           reject(new MediaValidationError('Could not read the video file. It may be corrupted.'))
           return
