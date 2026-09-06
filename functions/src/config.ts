@@ -11,20 +11,16 @@ export const config = {
     refreshToken: () => required('GOOGLE_DRIVE_REFRESH_TOKEN'),
     rootFolderId: () => required('GOOGLE_DRIVE_ROOT_FOLDER_ID'),
   },
-  admin: {
-    allowedEmails: () =>
-      (process.env.ADMIN_EMAILS ?? '')
-        .split(',')
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean),
-  },
   limits: {
     maxVideoDurationSeconds: Number(process.env.MAX_VIDEO_DURATION_SECONDS ?? 60),
     maxVideoSizeMb: Number(process.env.MAX_VIDEO_SIZE_MB ?? 80),
     maxPhotoSizeMb: Number(process.env.MAX_PHOTO_SIZE_MB ?? 15),
     maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH ?? 500),
     maxNameLength: Number(process.env.MAX_NAME_LENGTH ?? 60),
-    pendingUploadTimeoutMs: Number(process.env.PENDING_UPLOAD_TIMEOUT_MS ?? 2 * 60 * 1000),
+    // Generous enough to cover a slow mobile upload directly to Drive (see
+    // routes/customerQr.ts's upload-init/finalize split) without the QR getting
+    // reclaimed as abandoned while a legitimate upload is still in flight.
+    pendingUploadTimeoutMs: Number(process.env.PENDING_UPLOAD_TIMEOUT_MS ?? 8 * 60 * 1000),
   },
   appBaseUrl: () => process.env.APP_BASE_URL ?? '',
 }

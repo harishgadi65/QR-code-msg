@@ -12,12 +12,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      // The Functions emulator does not serve at /api/* directly — only Hosting's
-      // rewrite (firebase.json) maps /api/** to the "api" function. So proxy to the
-      // Hosting emulator (started as part of `firebase emulators:start`), which
-      // replicates the same rewrite locally that production Hosting does.
+      // The backend runs as a plain Express server locally (functions/src/localServer.ts,
+      // started with `npm run dev` in functions/) and as Vercel serverless functions in
+      // production — never through Firebase Hosting/Functions, so this just proxies
+      // straight to that local server.
       '/api': {
-        target: 'http://127.0.0.1:5000',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
       },
     },

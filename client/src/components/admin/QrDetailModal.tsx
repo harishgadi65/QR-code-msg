@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { apiDelete, apiPatch, apiPost, apiUpload, ApiError } from '../../services/api'
+import { apiDelete, apiPatch, apiPost, ApiError } from '../../services/api'
+import { uploadFileToDrive } from '../../services/driveUpload'
 import type { QrDoc } from '../../types/qr'
 import { downloadQrPng } from '../../qr/qrDownload'
 
@@ -57,10 +58,10 @@ export function QrDetailModal({
     })
 
   const onReplace = (kind: 'photo' | 'video', file: File) => {
-    const formData = new FormData()
-    formData.append(kind, file)
     void run(async () => {
-      await apiUpload(`/admin/qr/${qr.qrId}/${kind}`, formData)
+      const init = await apiPost<{ accessToken: string; folderId: string }>(`/admin/qr/${qr.qrId}/media-upload-init`, { kind })
+      const driveId = await uploadFileToDrive(init.accessToken, init.folderId, file, file.name)
+      await apiPost(`/admin/qr/${qr.qrId}/media-finalize`, { kind, driveId })
       toast.success(`${kind === 'photo' ? 'Photo' : 'Video'} replaced`)
     })
   }

@@ -1,20 +1,14 @@
 import { Router } from 'express'
 import { db } from '../services/firebaseAdmin'
 import { config } from '../config'
-import { parseMultipart } from '../middleware/multipart'
 import { qrIdSchema, memoryFieldsSchema } from '../utils/validation'
-import {
-  MediaValidationError,
-  validatePhoto,
-  validateVideoUpload,
-  assertVideoWithinDuration,
-} from '../utils/media'
-import { uploadMediaToDrive, computeMediaType, qrRef, now } from '../services/memoryService'
+import { MediaValidationError } from '../utils/media'
+import { mintUploadAccessToken } from '../googleDrive/driveClient'
+import { deleteFile, ensureQrFolder } from '../googleDrive/driveService'
+import { computeMediaType, qrRef, now, validateAndPublishDriveUpload } from '../services/memoryService'
 import type { QrDoc } from '../types/qr'
 
 const router = Router()
-
-const upload = parseMultipart(Math.max(config.limits.maxPhotoSizeMb, config.limits.maxVideoSizeMb) * 1024 * 1024)
 
 function friendlyError(res: import('express').Response, status: number, message: string, code?: string) {
   res.status(status).json({ error: message, code })
@@ -38,7 +32,7 @@ router.get('/:qrId', async (req, res) => {
       const data = snap.data() as QrDoc
       const nowMs = now()
 
-      // Auto-recover a claim that was abandoned mid-upload (e.g. server crash).
+      // Auto-recover a claim that was abandoned mid-upload (e.g. the browser tab closed).
       if (data.status === 'pending_upload' && data.pendingSince && nowMs - data.pendingSince > config.limits.pendingUploadTimeoutMs) {
         tx.update(qrRef(qrId), { status: 'empty', pendingSince: null, updatedAt: nowMs })
         data.status = 'empty'
@@ -81,110 +75,159 @@ router.get('/:qrId', async (req, res) => {
   }
 })
 
-router.post(
-  '/:qrId/memory',
-  upload,
-  async (req, res) => {
-    const parsedId = qrIdSchema.safeParse(req.params.qrId)
-    if (!parsedId.success) {
-      friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
-      return
-    }
-    const qrId = parsedId.data
+const CLAIM_ERROR_MESSAGES: Record<string, string> = {
+  not_found: 'This QR code is not registered.',
+  disabled: 'This QR code is currently unavailable.',
+  already_added: 'This QR code already has a saved memory.',
+  in_progress: 'Someone is already saving a memory to this QR. Please try again shortly.',
+}
 
-    const fields = memoryFieldsSchema.safeParse(req.body)
-    if (!fields.success) {
-      friendlyError(res, 400, 'Please check the details you entered.', 'INVALID_FIELDS')
-      return
-    }
+async function claimQr(qrId: string) {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(qrRef(qrId))
+    if (!snap.exists) return { ok: false as const, reason: 'not_found' as const }
+    const data = snap.data() as QrDoc
 
-    const files = req.uploadedFiles
-    const photoFile = files?.photo?.[0]
-    const videoFile = files?.video?.[0]
-
-    const fromName = fields.data.fromName?.trim() || null
-    const toName = fields.data.toName?.trim() || null
-    const message = fields.data.message?.trim() || null
-
-    if (!photoFile && !videoFile && !message) {
-      friendlyError(res, 400, 'Please add a photo, video, or message before saving.', 'EMPTY_MEMORY')
-      return
+    if (data.status === 'disabled') return { ok: false as const, reason: 'disabled' as const }
+    if (data.status === 'content_added') return { ok: false as const, reason: 'already_added' as const }
+    if (data.status === 'pending_upload') {
+      const timedOut = data.pendingSince != null && now() - data.pendingSince > config.limits.pendingUploadTimeoutMs
+      if (!timedOut) return { ok: false as const, reason: 'in_progress' as const }
     }
 
-    try {
-      if (photoFile) validatePhoto(photoFile)
-      if (videoFile) {
-        validateVideoUpload(videoFile)
-        await assertVideoWithinDuration(videoFile.buffer)
-      }
-    } catch (err) {
-      if (err instanceof MediaValidationError) {
-        friendlyError(res, 400, err.message, err.code)
-        return
-      }
-      friendlyError(res, 400, 'Could not process the selected media.', 'MEDIA_INVALID')
-      return
+    tx.update(qrRef(qrId), { status: 'pending_upload', pendingSince: now(), updatedAt: now() })
+    return { ok: true as const }
+  })
+}
+
+// Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived
+// Drive access token plus the exact folder(s) the browser is allowed to upload into —
+// the browser then uploads the file bytes straight to Google, never through this server.
+router.post('/:qrId/upload-init', async (req, res) => {
+  const parsedId = qrIdSchema.safeParse(req.params.qrId)
+  if (!parsedId.success) {
+    friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
+    return
+  }
+  const qrId = parsedId.data
+  const wantsPhoto = Boolean(req.body?.wantsPhoto)
+  const wantsVideo = Boolean(req.body?.wantsVideo)
+
+  const claim = await claimQr(qrId)
+  if (!claim.ok) {
+    friendlyError(res, 409, CLAIM_ERROR_MESSAGES[claim.reason], claim.reason.toUpperCase())
+    return
+  }
+
+  try {
+    const needsDrive = wantsPhoto || wantsVideo
+    const [accessToken, photoFolderId, videoFolderId] = await Promise.all([
+      needsDrive ? mintUploadAccessToken() : Promise.resolve(undefined),
+      wantsPhoto ? ensureQrFolder(qrId, 'photo') : Promise.resolve(undefined),
+      wantsVideo ? ensureQrFolder(qrId, 'video') : Promise.resolve(undefined),
+    ])
+    res.json({ accessToken, photoFolderId, videoFolderId })
+  } catch {
+    await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
+    friendlyError(res, 502, 'Something went wrong while preparing your upload. Please try again.', 'UPLOAD_INIT_FAILED')
+  }
+})
+
+// Step 2: the browser has already uploaded bytes straight to Drive by this point — this
+// re-validates what actually landed there (mirrors the checks a bypassed browser UI
+// could otherwise skip), sets sharing permissions, and finalizes the Firestore record.
+router.post('/:qrId/finalize', async (req, res) => {
+  const parsedId = qrIdSchema.safeParse(req.params.qrId)
+  if (!parsedId.success) {
+    friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
+    return
+  }
+  const qrId = parsedId.data
+
+  const fields = memoryFieldsSchema.safeParse(req.body)
+  if (!fields.success) {
+    friendlyError(res, 400, 'Please check the details you entered.', 'INVALID_FIELDS')
+    return
+  }
+
+  const snap = await qrRef(qrId).get()
+  if (!snap.exists) {
+    friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
+    return
+  }
+  if ((snap.data() as QrDoc).status !== 'pending_upload') {
+    friendlyError(res, 409, 'Please start over from the upload step.', 'NOT_PENDING')
+    return
+  }
+
+  const photoDriveId = typeof req.body?.photoDriveId === 'string' ? req.body.photoDriveId : undefined
+  const videoDriveId = typeof req.body?.videoDriveId === 'string' ? req.body.videoDriveId : undefined
+  const fromName = fields.data.fromName?.trim() || null
+  const toName = fields.data.toName?.trim() || null
+  const message = fields.data.message?.trim() || null
+
+  if (!photoDriveId && !videoDriveId && !message) {
+    friendlyError(res, 400, 'Please add a photo, video, or message before saving.', 'EMPTY_MEMORY')
+    return
+  }
+
+  const uploadedFileIds: string[] = []
+  try {
+    let photoUrl: string | null = null
+    let videoUrl: string | null = null
+
+    if (photoDriveId) {
+      ;({ url: photoUrl } = await validateAndPublishDriveUpload(qrId, 'photo', photoDriveId))
+      uploadedFileIds.push(photoDriveId)
+    }
+    if (videoDriveId) {
+      ;({ url: videoUrl } = await validateAndPublishDriveUpload(qrId, 'video', videoDriveId))
+      uploadedFileIds.push(videoDriveId)
     }
 
-    // Phase 1: atomically claim the QR so a second concurrent request can't also proceed.
-    const claim = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(qrRef(qrId))
-      if (!snap.exists) return { ok: false as const, reason: 'not_found' as const }
-      const data = snap.data() as QrDoc
-
-      if (data.status === 'disabled') return { ok: false as const, reason: 'disabled' as const }
-      if (data.status === 'content_added') return { ok: false as const, reason: 'already_added' as const }
-      if (data.status === 'pending_upload') {
-        const timedOut = data.pendingSince != null && now() - data.pendingSince > config.limits.pendingUploadTimeoutMs
-        if (!timedOut) return { ok: false as const, reason: 'in_progress' as const }
-      }
-
-      tx.update(qrRef(qrId), { status: 'pending_upload', pendingSince: now(), updatedAt: now() })
-      return { ok: true as const }
+    await qrRef(qrId).update({
+      status: 'content_added',
+      pendingSince: null,
+      fromName,
+      toName,
+      message,
+      photoUrl,
+      photoDriveId: photoDriveId ?? null,
+      videoUrl,
+      videoDriveId: videoDriveId ?? null,
+      mediaType: computeMediaType({ photoUrl, videoUrl }),
+      updatedAt: now(),
     })
 
-    if (!claim.ok) {
-      const messages: Record<string, string> = {
-        not_found: 'This QR code is not registered.',
-        disabled: 'This QR code is currently unavailable.',
-        already_added: 'This QR code already has a saved memory.',
-        in_progress: 'Someone is already saving a memory to this QR. Please try again shortly.',
-      }
-      friendlyError(res, 409, messages[claim.reason], claim.reason.toUpperCase())
+    res.json({ status: 'content_added' })
+  } catch (err) {
+    // Clean up whatever was uploaded and release the claim so the QR stays usable.
+    await Promise.all(uploadedFileIds.map((id) => deleteFile(id).catch(() => undefined)))
+    await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
+
+    if (err instanceof MediaValidationError) {
+      friendlyError(res, 400, err.message, err.code)
       return
     }
+    friendlyError(res, 502, 'Something went wrong while saving your memory. Please try again.', 'UPLOAD_FAILED')
+  }
+})
 
-    // Phase 2: upload to Drive outside the transaction.
-    try {
-      const uploaded = await uploadMediaToDrive(
-        qrId,
-        photoFile ? { buffer: photoFile.buffer, mimetype: photoFile.mimetype } : undefined,
-        videoFile ? { buffer: videoFile.buffer, mimetype: videoFile.mimetype } : undefined,
-      )
+// Lets the browser release its own claim early (e.g. its direct Drive upload failed)
+// instead of waiting out the full pending-upload timeout before the QR is usable again.
+router.post('/:qrId/cancel-upload', async (req, res) => {
+  const parsedId = qrIdSchema.safeParse(req.params.qrId)
+  if (!parsedId.success) {
+    res.json({ ok: true })
+    return
+  }
+  const qrId = parsedId.data
 
-      await qrRef(qrId).update({
-        status: 'content_added',
-        pendingSince: null,
-        fromName,
-        toName,
-        message,
-        photoUrl: uploaded.photo?.url ?? null,
-        photoDriveId: uploaded.photo?.fileId ?? null,
-        videoUrl: uploaded.video?.url ?? null,
-        videoDriveId: uploaded.video?.fileId ?? null,
-        mediaType: computeMediaType({ photoUrl: uploaded.photo?.url ?? null, videoUrl: uploaded.video?.url ?? null }),
-        updatedAt: now(),
-      })
-
-      res.json({ status: 'content_added' })
-    } catch {
-      // Release the claim so the QR remains usable.
-      await qrRef(qrId)
-        .update({ status: 'empty', pendingSince: null, updatedAt: now() })
-        .catch(() => undefined)
-      friendlyError(res, 502, 'Something went wrong while saving your memory. Please try again.', 'UPLOAD_FAILED')
-    }
-  },
-)
+  const snap = await qrRef(qrId).get()
+  if (snap.exists && (snap.data() as QrDoc).status === 'pending_upload') {
+    await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() })
+  }
+  res.json({ ok: true })
+})
 
 export default router

@@ -1,10 +1,11 @@
 import { auth } from '../firebase/config'
 
-// When the frontend is served from Firebase Hosting, "/api/**" is rewritten to the
-// Cloud Function on the same origin (see firebase.json). When served from a static
-// host with no rewrite support (GitHub Pages, etc.), VITE_API_BASE_URL must point
-// directly at the deployed function's URL instead, e.g.
-// https://us-central1-<project>.cloudfunctions.net/api
+// The backend (functions/) deploys separately from this frontend — as Vercel
+// serverless functions, not Firebase Hosting/Functions (see functions/README notes).
+// VITE_API_BASE_URL should point at that deployment, e.g. https://your-api.vercel.app/api.
+// Left unset, requests fall back to a same-origin "/api" path, which only works for
+// local dev (Vite's proxy — see vite.config.ts) or a setup that fronts both under one
+// domain via its own reverse proxy.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 export class ApiError extends Error {
@@ -55,36 +56,3 @@ async function jsonRequest<T>(method: string, path: string, body?: unknown): Pro
 export const apiPost = <T>(path: string, body?: unknown) => jsonRequest<T>('POST', path, body)
 export const apiPatch = <T>(path: string, body?: unknown) => jsonRequest<T>('PATCH', path, body)
 export const apiDelete = <T>(path: string) => jsonRequest<T>('DELETE', path)
-
-export async function apiUpload<T>(
-  path: string,
-  formData: FormData,
-  onProgress?: (pct: number) => void,
-): Promise<T> {
-  const headers = await authHeaders()
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${API_BASE}${path}`)
-    for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value as string)
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100))
-    }
-    xhr.onload = () => {
-      let body: { error?: string; code?: string } = {}
-      try {
-        body = JSON.parse(xhr.responseText)
-      } catch {
-        // ignore non-JSON error bodies
-      }
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(body as T)
-      } else {
-        reject(new ApiError(body.error ?? 'Upload failed. Please try again.', xhr.status, body.code))
-      }
-    }
-    xhr.onerror = () => reject(new ApiError('Network error during upload.', 0))
-    xhr.send(formData)
-  })
-}

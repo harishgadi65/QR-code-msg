@@ -1,22 +1,21 @@
 import { Router } from 'express'
 import { db } from '../services/firebaseAdmin'
-import { config } from '../config'
-import { parseMultipart } from '../middleware/multipart'
 import { generateQrSchema, memoryFieldsSchema } from '../utils/validation'
 import { allocateBatchId, allocateQrIds } from '../services/idAllocator'
 import {
   computeMediaType,
   deleteExistingContentFiles,
   qrRef,
-  uploadMediaToDrive,
   now,
+  validateAndPublishDriveUpload,
 } from '../services/memoryService'
-import { MediaValidationError, validatePhoto, validateVideoUpload, assertVideoWithinDuration } from '../utils/media'
+import { mintUploadAccessToken } from '../googleDrive/driveClient'
+import { ensureQrFolder } from '../googleDrive/driveService'
+import { MediaValidationError } from '../utils/media'
 import type { AuthedRequest } from '../middleware/auth'
 import type { QrDoc } from '../types/qr'
 
 const router = Router()
-const upload = parseMultipart(Math.max(config.limits.maxPhotoSizeMb, config.limits.maxVideoSizeMb) * 1024 * 1024)
 
 const BATCH_WRITE_CHUNK = 450
 const PREFIX_RANGE_SUFFIX = '~' // sorts after digits/uppercase letters used in QR ids
@@ -190,25 +189,34 @@ router.patch('/:qrId/message', async (req, res) => {
   res.json({ ok: true })
 })
 
-async function replaceMedia(req: AuthedRequest, res: import('express').Response, kind: 'photo' | 'video') {
-  const file = req.uploadedFiles?.[kind]?.[0]
-  if (!file) {
-    res.status(400).json({ error: `Please select a ${kind} to upload.`, code: 'MISSING_FILE' })
+// Same direct-to-Drive pattern as the customer flow (see routes/customerQr.ts) — the
+// admin's browser uploads the file straight to Google using a short-lived token,
+// avoiding the small request-body limits serverless hosts like Vercel impose.
+router.post('/:qrId/media-upload-init', async (req, res) => {
+  const kind = req.body?.kind === 'photo' || req.body?.kind === 'video' ? req.body.kind : null
+  if (!kind) {
+    res.status(400).json({ error: 'Invalid media kind.', code: 'INVALID_KIND' })
+    return
+  }
+  const snap = await qrRef(req.params.qrId).get()
+  if (!snap.exists) {
+    res.status(404).json({ error: 'QR code not found.', code: 'NOT_FOUND' })
     return
   }
 
   try {
-    if (kind === 'photo') validatePhoto(file)
-    else {
-      validateVideoUpload(file)
-      await assertVideoWithinDuration(file.buffer)
-    }
-  } catch (err) {
-    if (err instanceof MediaValidationError) {
-      res.status(400).json({ error: err.message, code: err.code })
-      return
-    }
-    res.status(400).json({ error: 'Could not process the selected media.', code: 'MEDIA_INVALID' })
+    const [accessToken, folderId] = await Promise.all([mintUploadAccessToken(), ensureQrFolder(req.params.qrId, kind)])
+    res.json({ accessToken, folderId })
+  } catch {
+    res.status(502).json({ error: 'Failed to prepare the upload. Please try again.', code: 'UPLOAD_INIT_FAILED' })
+  }
+})
+
+router.post('/:qrId/media-finalize', async (req: AuthedRequest, res) => {
+  const kind = req.body?.kind === 'photo' || req.body?.kind === 'video' ? req.body.kind : null
+  const driveId = typeof req.body?.driveId === 'string' ? req.body.driveId : null
+  if (!kind || !driveId) {
+    res.status(400).json({ error: 'Missing upload details.', code: 'INVALID_INPUT' })
     return
   }
 
@@ -221,35 +229,32 @@ async function replaceMedia(req: AuthedRequest, res: import('express').Response,
   const data = snap.data() as QrDoc
 
   try {
-    const uploaded = await uploadMediaToDrive(
-      req.params.qrId,
-      kind === 'photo' ? { buffer: file.buffer, mimetype: file.mimetype } : undefined,
-      kind === 'video' ? { buffer: file.buffer, mimetype: file.mimetype } : undefined,
-    )
+    const { url } = await validateAndPublishDriveUpload(req.params.qrId, kind, driveId)
 
     if (kind === 'photo' && data.photoDriveId) await deleteExistingContentFiles({ photoDriveId: data.photoDriveId })
     if (kind === 'video' && data.videoDriveId) await deleteExistingContentFiles({ videoDriveId: data.videoDriveId })
 
-    const photoUrl = kind === 'photo' ? (uploaded.photo?.url ?? null) : data.photoUrl
-    const videoUrl = kind === 'video' ? (uploaded.video?.url ?? null) : data.videoUrl
+    const photoUrl = kind === 'photo' ? url : data.photoUrl
+    const videoUrl = kind === 'video' ? url : data.videoUrl
 
     await ref.update({
       status: 'content_added',
       photoUrl,
-      photoDriveId: kind === 'photo' ? (uploaded.photo?.fileId ?? null) : data.photoDriveId,
+      photoDriveId: kind === 'photo' ? driveId : data.photoDriveId,
       videoUrl,
-      videoDriveId: kind === 'video' ? (uploaded.video?.fileId ?? null) : data.videoDriveId,
+      videoDriveId: kind === 'video' ? driveId : data.videoDriveId,
       mediaType: computeMediaType({ photoUrl, videoUrl }),
       updatedAt: now(),
     })
 
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    if (err instanceof MediaValidationError) {
+      res.status(400).json({ error: err.message, code: err.code })
+      return
+    }
     res.status(502).json({ error: 'Upload failed. Please try again.', code: 'UPLOAD_FAILED' })
   }
-}
-
-router.post('/:qrId/photo', upload, (req, res) => replaceMedia(req, res, 'photo'))
-router.post('/:qrId/video', upload, (req, res) => replaceMedia(req, res, 'video'))
+})
 
 export default router

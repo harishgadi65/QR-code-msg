@@ -1,11 +1,18 @@
 /**
- * One-time script to obtain a Google Drive OAuth2 refresh token.
+ * One-time script to obtain a Google Drive OAuth2 refresh token AND create the root
+ * folder that will hold every QR code's photos/videos.
  *
  * 1. In Google Cloud Console, create an OAuth 2.0 Client ID of type "Desktop app".
  * 2. Set GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET in your shell.
- * 3. Run: npx ts-node scripts/getGoogleDriveToken.ts
+ * 3. Run: npm run get-drive-token
  * 4. Sign in with the Google account that should own the uploaded photos/videos.
- * 5. Copy the printed refresh token into GOOGLE_DRIVE_REFRESH_TOKEN.
+ * 5. Copy the two printed values into functions/.env.
+ *
+ * Why this script creates the folder (rather than you creating one by hand in Drive):
+ * the app only requests the `drive.file` scope, which limits it to files/folders the
+ * app itself created — a folder made through the regular Drive website would NOT be
+ * visible to it. Creating the root folder here, through this same authenticated
+ * session, is what makes it "app-created" and therefore accessible later.
  */
 import http from 'node:http'
 import { URL } from 'node:url'
@@ -14,6 +21,7 @@ import open from 'open'
 
 const PORT = 53682
 const REDIRECT_URI = `http://127.0.0.1:${PORT}/oauth2callback`
+const ROOT_FOLDER_NAME = 'QR-MEMORIES'
 
 async function main() {
   const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID
@@ -27,7 +35,9 @@ async function main() {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/drive'],
+    // drive.file (not the full "drive" scope) limits every token this app ever mints
+    // to only the files/folders it creates itself — never the rest of the Drive account.
+    scope: ['https://www.googleapis.com/auth/drive.file'],
   })
 
   const code: string = await new Promise((resolve, reject) => {
@@ -55,9 +65,17 @@ async function main() {
     console.error('No refresh token returned. Revoke prior access at https://myaccount.google.com/permissions and try again.')
     process.exit(1)
   }
+  oauth2Client.setCredentials(tokens)
 
-  console.log('\nSet this in your functions environment config:\n')
+  const drive = google.drive({ version: 'v3', auth: oauth2Client })
+  const created = await drive.files.create({
+    requestBody: { name: ROOT_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+    fields: 'id',
+  })
+
+  console.log('\nSet these in functions/.env:\n')
   console.log(`GOOGLE_DRIVE_REFRESH_TOKEN=${tokens.refresh_token}`)
+  console.log(`GOOGLE_DRIVE_ROOT_FOLDER_ID=${created.data.id}`)
 }
 
 main().catch((err) => {

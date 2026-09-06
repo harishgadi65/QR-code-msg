@@ -45,6 +45,20 @@ export interface UploadedFile {
   url: string
 }
 
+export function urlForFile(fileId: string, kind: DriveMediaKind): string {
+  return kind === 'photo'
+    ? `https://lh3.googleusercontent.com/d/${fileId}=s1600`
+    : `https://drive.google.com/file/d/${fileId}/preview`
+}
+
+export async function makeFilePublic(fileId: string): Promise<void> {
+  const drive = await getDrive()
+  await drive.permissions.create({
+    fileId,
+    requestBody: { role: 'reader', type: 'anyone' },
+  })
+}
+
 export async function uploadFile(
   folderId: string,
   filename: string,
@@ -63,17 +77,44 @@ export async function uploadFile(
   const fileId = res.data.id
   if (!fileId) throw new Error('Drive upload did not return a file id')
 
-  await drive.permissions.create({
-    fileId,
-    requestBody: { role: 'reader', type: 'anyone' },
-  })
+  await makeFilePublic(fileId)
+  return { fileId, url: urlForFile(fileId, kind) }
+}
 
-  const url =
-    kind === 'photo'
-      ? `https://lh3.googleusercontent.com/d/${fileId}=s1600`
-      : `https://drive.google.com/file/d/${fileId}/preview`
+export interface DriveFileMetadata {
+  mimeType: string
+  size: number
+  parents: string[]
+}
 
-  return { fileId, url }
+export async function getFileMetadata(fileId: string): Promise<DriveFileMetadata> {
+  const drive = await getDrive()
+  const res = await drive.files.get({ fileId, fields: 'mimeType, size, parents' })
+  return {
+    mimeType: res.data.mimeType ?? '',
+    size: Number(res.data.size ?? 0),
+    parents: res.data.parents ?? [],
+  }
+}
+
+export async function downloadFile(fileId: string): Promise<Buffer> {
+  const drive = await getDrive()
+  const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'arraybuffer' })
+  return Buffer.from(res.data as ArrayBuffer)
+}
+
+/**
+ * Confirms a file the browser just uploaded directly to Drive actually lives inside
+ * the folder we handed out an upload token for — a customer's browser holds a real
+ * (if narrowly-scoped and short-lived) Drive access token during upload, so this stops
+ * it from being used to point an unrelated existing Drive file ID at this QR code.
+ */
+export async function assertFileInFolder(fileId: string, folderId: string): Promise<DriveFileMetadata> {
+  const meta = await getFileMetadata(fileId)
+  if (!meta.parents.includes(folderId)) {
+    throw new Error('File does not belong to the expected upload folder')
+  }
+  return meta
 }
 
 export async function deleteFile(fileId: string): Promise<void> {

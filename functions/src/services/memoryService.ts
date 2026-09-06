@@ -1,6 +1,15 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import { db } from './firebaseAdmin'
-import { deleteFile, ensureQrFolder, uploadFile } from '../googleDrive/driveService'
+import {
+  assertFileInFolder,
+  deleteFile,
+  downloadFile,
+  ensureQrFolder,
+  makeFilePublic,
+  urlForFile,
+  type DriveMediaKind,
+} from '../googleDrive/driveService'
+import { validatePhoto, validateVideoUpload, assertVideoWithinDuration } from '../utils/media'
 import type { QrDoc } from '../types/qr'
 
 export type MediaType = 'none' | 'photo' | 'video' | 'photo_video'
@@ -12,41 +21,31 @@ export function computeMediaType(doc: Pick<QrDoc, 'photoUrl' | 'videoUrl'>): Med
   return 'none'
 }
 
-export interface UploadedMediaResult {
-  photo?: { fileId: string; url: string }
-  video?: { fileId: string; url: string }
-}
-
-export async function uploadMediaToDrive(
+/**
+ * Re-validates a file the browser already uploaded directly to Drive (mirroring the
+ * checks that would otherwise only exist in the browser UI, which a direct API call
+ * could bypass), then makes it publicly viewable. Used by both the customer save flow
+ * and the admin replace-photo/replace-video flow — same trust boundary either way,
+ * since both let an external browser hold a temporary Drive upload token.
+ */
+export async function validateAndPublishDriveUpload(
   qrId: string,
-  photo?: { buffer: Buffer; mimetype: string },
-  video?: { buffer: Buffer; mimetype: string },
-): Promise<UploadedMediaResult> {
-  const result: UploadedMediaResult = {}
+  kind: DriveMediaKind,
+  driveId: string,
+): Promise<{ url: string }> {
+  const folderId = await ensureQrFolder(qrId, kind)
+  const meta = await assertFileInFolder(driveId, folderId)
 
-  try {
-    if (photo) {
-      const folderId = await ensureQrFolder(qrId, 'photo')
-      const ext = photo.mimetype.split('/')[1] ?? 'jpg'
-      result.photo = await uploadFile(folderId, `photo.${ext}`, photo.mimetype, photo.buffer, 'photo')
-    }
-    if (video) {
-      const folderId = await ensureQrFolder(qrId, 'video')
-      const ext = video.mimetype.split('/')[1] ?? 'mp4'
-      result.video = await uploadFile(folderId, `video.${ext}`, video.mimetype, video.buffer, 'video')
-    }
-    return result
-  } catch (err) {
-    await cleanupUploaded(result)
-    throw err
+  if (kind === 'photo') {
+    validatePhoto({ mimetype: meta.mimeType, size: meta.size })
+  } else {
+    validateVideoUpload({ mimetype: meta.mimeType, size: meta.size })
+    const buffer = await downloadFile(driveId)
+    await assertVideoWithinDuration(buffer)
   }
-}
 
-export async function cleanupUploaded(result: UploadedMediaResult): Promise<void> {
-  await Promise.all([
-    result.photo ? deleteFile(result.photo.fileId).catch(() => undefined) : undefined,
-    result.video ? deleteFile(result.video.fileId).catch(() => undefined) : undefined,
-  ])
+  await makeFilePublic(driveId)
+  return { url: urlForFile(driveId, kind) }
 }
 
 export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<void> {

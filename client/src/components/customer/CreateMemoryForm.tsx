@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { apiUpload, ApiError } from '../../services/api'
+import { apiPost, ApiError } from '../../services/api'
+import { uploadFileToDrive } from '../../services/driveUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
 
@@ -80,17 +81,48 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     setStep('uploading')
     setError(null)
     setProgress(0)
-    const formData = new FormData()
-    if (photoFile) formData.append('photo', photoFile)
-    if (videoFile) formData.append('video', videoFile)
-    if (fromName.trim()) formData.append('fromName', fromName.trim())
-    if (toName.trim()) formData.append('toName', toName.trim())
-    if (message.trim()) formData.append('message', message.trim())
 
+    let claimed = false
     try {
-      await apiUpload(`/qr/${qrId}/memory`, formData, setProgress)
+      // Step 1: claim the QR and get a short-lived Drive upload token.
+      const init = await apiPost<{ accessToken: string; photoFolderId?: string; videoFolderId?: string }>(
+        `/qr/${qrId}/upload-init`,
+        { wantsPhoto: Boolean(photoFile), wantsVideo: Boolean(videoFile) },
+      )
+      claimed = true
+
+      // Step 2: upload straight to Drive — never through our own server.
+      const totalBytes = (photoFile?.size ?? 0) + (videoFile?.size ?? 0)
+      let photoDriveId: string | undefined
+      let videoDriveId: string | undefined
+      let uploadedSoFar = 0
+
+      const trackProgress = (fileSize: number) => (pct: number) => {
+        if (!totalBytes) return
+        setProgress(Math.round(((uploadedSoFar + (fileSize * pct) / 100) / totalBytes) * 100))
+      }
+
+      if (photoFile && init.photoFolderId) {
+        photoDriveId = await uploadFileToDrive(init.accessToken, init.photoFolderId, photoFile, photoFile.name, trackProgress(photoFile.size))
+        uploadedSoFar += photoFile.size
+      }
+      if (videoFile && init.videoFolderId) {
+        videoDriveId = await uploadFileToDrive(init.accessToken, init.videoFolderId, videoFile, videoFile.name, trackProgress(videoFile.size))
+        uploadedSoFar += videoFile.size
+      }
+
+      // Step 3: confirm what landed in Drive and save the memory.
+      await apiPost(`/qr/${qrId}/finalize`, {
+        photoDriveId,
+        videoDriveId,
+        fromName: fromName.trim() || undefined,
+        toName: toName.trim() || undefined,
+        message: message.trim() || undefined,
+      })
+
       setStep('success')
     } catch (err) {
+      if (claimed) await apiPost(`/qr/${qrId}/cancel-upload`).catch(() => undefined)
       setError(err instanceof ApiError ? err.message : 'Something went wrong while saving your memory. Please try again.')
       setStep('preview')
     }
