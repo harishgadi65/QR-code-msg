@@ -70,7 +70,8 @@ router.get('/:qrId', async (req, res) => {
       return
     }
     res.json({ status: 'empty', isTest: result.data?.isTest ?? false })
-  } catch {
+  } catch (err) {
+    console.error('GET /:qrId failed', err)
     friendlyError(res, 500, 'Something went wrong. Please try again.', 'INTERNAL')
   }
 })
