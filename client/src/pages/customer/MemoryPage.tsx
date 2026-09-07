@@ -34,11 +34,17 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
   )
 }
 
+// Off by default: flips on once Google sign-in is enabled in the Firebase console
+// and the team is ready to require it before a customer can upload — see
+// functions/src/config.ts's matching REQUIRE_UPLOAD_SIGNIN flag.
+const REQUIRE_UPLOAD_SIGNIN = import.meta.env.VITE_REQUIRE_UPLOAD_SIGNIN === 'true'
+
 // Gates only the upload step, not the memory view — recipients scanning a completed
 // gift never hit this, only whoever is about to attach the photo/video/message.
 function UploadAuthGate({ children }: { children: ReactNode }) {
   const { user, loading, loginWithGoogle, logout } = useAuth()
 
+  if (!REQUIRE_UPLOAD_SIGNIN) return <>{children}</>
   if (loading) return <CenteredMessage emoji="⏳" title="Loading..." subtitle="" />
 
   if (!user) {

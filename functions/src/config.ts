@@ -25,4 +25,8 @@ export const config = {
     pendingUploadTimeoutMs: Number(process.env.PENDING_UPLOAD_TIMEOUT_MS ?? 8 * 60 * 1000),
   },
   appBaseUrl: () => process.env.APP_BASE_URL ?? '',
+  // Off by default: flips on once Google sign-in is enabled in the Firebase console
+  // and the team is ready to require it before a customer can upload. See
+  // routes/customerQr.ts's upload-init/finalize.
+  requireUploadSignIn: process.env.REQUIRE_UPLOAD_SIGNIN === 'true',
 }

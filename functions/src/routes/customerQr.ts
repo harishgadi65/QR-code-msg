@@ -8,8 +8,17 @@ import { deleteFile, ensureQrFolder } from '../googleDrive/driveService'
 import { computeMediaType, qrRef, now, validateAndPublishDriveUpload } from '../services/memoryService'
 import { requireSignedIn, type AuthedRequest } from '../middleware/auth'
 import type { QrDoc } from '../types/qr'
+import type { Response, NextFunction } from 'express'
 
 const router = Router()
+
+// Wraps requireSignedIn behind the config flag so the sign-in requirement can be
+// switched on later (once Google sign-in is enabled in Firebase) without touching
+// route wiring — see config.requireUploadSignIn.
+function maybeRequireSignedIn(req: AuthedRequest, res: Response, next: NextFunction) {
+  if (config.requireUploadSignIn) return requireSignedIn(req, res, next)
+  next()
+}
 
 function friendlyError(res: import('express').Response, status: number, message: string, code?: string) {
   res.status(status).json({ error: message, code })
@@ -115,7 +124,7 @@ async function claimQr(qrId: string) {
 // Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived
 // Drive access token plus the exact folder(s) the browser is allowed to upload into —
 // the browser then uploads the file bytes straight to Google, never through this server.
-router.post('/:qrId/upload-init', requireSignedIn, async (req, res) => {
+router.post('/:qrId/upload-init', maybeRequireSignedIn, async (req, res) => {
   const parsedId = qrIdSchema.safeParse(req.params.qrId)
   if (!parsedId.success) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
@@ -150,7 +159,7 @@ router.post('/:qrId/upload-init', requireSignedIn, async (req, res) => {
 // Step 2: the browser has already uploaded bytes straight to Drive by this point — this
 // re-validates what actually landed there (mirrors the checks a bypassed browser UI
 // could otherwise skip), sets sharing permissions, and finalizes the Firestore record.
-router.post('/:qrId/finalize', requireSignedIn, async (req: AuthedRequest, res) => {
+router.post('/:qrId/finalize', maybeRequireSignedIn, async (req: AuthedRequest, res) => {
   const parsedId = qrIdSchema.safeParse(req.params.qrId)
   if (!parsedId.success) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
