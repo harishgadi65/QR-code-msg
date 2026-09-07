@@ -9,51 +9,59 @@ body {
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Vintage newspaper theme — used only on the customer-facing scan/upload/view
-   pages (see components/customer/*), not the admin panel. */
+/* Festive Indian greeting-card theme — used only on the customer-facing
+   scan/upload/view pages (see components/customer/*), not the admin panel. */
 
 .vintage-page {
+  position: relative;
   min-height: 100vh;
-  background-color: #efe4c9;
+  overflow: hidden;
+  background-color: #fdf3e9;
   background-image:
-    radial-gradient(ellipse at top left, rgba(122, 46, 46, 0.06), transparent 55%),
-    radial-gradient(ellipse at bottom right, rgba(122, 46, 46, 0.06), transparent 55%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-  color: #33281c;
+    radial-gradient(circle at 12% 10%, rgba(240, 178, 60, 0.22), transparent 40%),
+    radial-gradient(circle at 88% 8%, rgba(240, 178, 60, 0.18), transparent 38%),
+    radial-gradient(circle at 90% 92%, rgba(220, 60, 90, 0.12), transparent 40%),
+    radial-gradient(circle at 8% 90%, rgba(240, 178, 60, 0.16), transparent 40%),
+    linear-gradient(180deg, #fdf3e9 0%, #fbe9e6 100%);
+  color: #3a2a2a;
 }
 
 .vintage-card {
-  background-color: #f7f0dc;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cpath d='M120,55 C155,55 175,90 158,125 C145,152 112,158 90,144 C68,130 62,100 82,80 C93,69 106,66 120,55 Z' fill='%237a2e2e' fill-opacity='0.05'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center 60%;
-  background-size: 65% auto;
-  border: 1px solid #c9b48a;
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 251, 244, 0.94);
+  border: 1px solid rgba(214, 168, 100, 0.5);
+  border-radius: 1.75rem;
   box-shadow:
-    0 0 0 4px #f7f0dc,
-    0 0 0 5px #8a6d3b,
-    0 12px 30px -12px rgba(51, 40, 28, 0.45);
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 20px 45px -20px rgba(122, 31, 43, 0.35);
 }
 
-/* A toran/bunting strip — the little hanging flag garlands strung above doorways
-   during Indian festivals and weddings — used as a decorative header band on the
-   customer-facing cards for a heritage touch. */
-.vintage-toran {
-  height: 22px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='24'%3E%3Cline x1='0' y1='2' x2='90' y2='2' stroke='%235a4326' stroke-width='2'/%3E%3Cpolygon points='5,2 25,2 15,20' fill='%237a2e2e'/%3E%3Cpolygon points='35,2 55,2 45,20' fill='%23c9821f'/%3E%3Cpolygon points='65,2 85,2 75,20' fill='%233c5a3c'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-size: 90px 22px;
+.vintage-corner {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px rgba(58, 30, 20, 0.15));
 }
 
 .vintage-heading {
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  color: #6b1f2e;
+}
+
+.vintage-script {
+  font-family: "Dancing Script", "Brush Script MT", cursive;
+  font-weight: 700;
+  color: #9c1f3a;
 }
 
 .vintage-rule {
-  border: none;
-  border-top: 3px double #8a6d3b;
+  height: 1px;
+  flex: 1 1 auto;
+  background: linear-gradient(90deg, transparent, #d6a864, transparent);
 }
 
 .vintage-eyebrow {
@@ -64,26 +72,29 @@ body {
 }
 
 .vintage-label {
-  font-family: "Special Elite", "Courier New", monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #6b5b3d;
+  font-family: Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #7a2e2e;
 }
 
 .vintage-btn {
-  font-family: "Special Elite", "Courier New", monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: #7a2e2e;
-  color: #f7f0dc;
-  border: 2px solid #5a2020;
-  box-shadow: 0 2px 0 #4a1a1a;
-  transition: transform 0.1s ease;
+  font-family: Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fdf3e9;
+  background: linear-gradient(135deg, #8a2332, #b0223f);
+  border: 1px solid #d6a864;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 10px 22px -8px rgba(122, 31, 43, 0.55);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
 }
 
 .vintage-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 0 1px 0 #4a1a1a;
 }
 
 .vintage-btn:disabled {
@@ -91,29 +102,30 @@ body {
 }
 
 .vintage-btn-outline {
-  font-family: "Special Elite", "Courier New", monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   background: transparent;
-  color: #6b5b3d;
-  border: 2px solid #8a6d3b;
+  color: #7a2e2e;
+  border: 1px solid #d6a864;
 }
 
 .vintage-input {
-  font-family: "Courier Prime", "Courier New", monospace;
-  background: #fbf6e8;
-  border: 1px solid #b8a06e;
-  color: #33281c;
+  font-family: Georgia, serif;
+  background: #fffaf0;
+  border: 1px solid #e3c691;
+  border-radius: 1rem;
+  color: #3a2a2a;
 }
 
 .vintage-input:focus {
   outline: none;
-  border-color: #7a2e2e;
-  box-shadow: 0 0 0 2px rgba(122, 46, 46, 0.15);
+  border-color: #9c1f3a;
+  box-shadow: 0 0 0 3px rgba(156, 31, 58, 0.12);
 }
 
 .vintage-input::placeholder {
-  color: #a89a78;
+  color: #b4a488;
 }
 
 .vintage-body {
@@ -122,4 +134,54 @@ body {
 
 .vintage-marigold {
   color: #b5750f;
+}
+
+.vintage-icon-card {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid transparent;
+  padding: 1rem 0.75rem 0.9rem;
+  text-align: center;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.vintage-icon-card:active {
+  transform: scale(0.97);
+}
+
+.vintage-icon-card--pink {
+  background: linear-gradient(160deg, #fde3ec, #fbd0dc);
+  border-color: #f6b6c9;
+}
+.vintage-icon-card--gold {
+  background: linear-gradient(160deg, #fdf0d2, #fbe3ac);
+  border-color: #eecb7d;
+}
+.vintage-icon-card--purple {
+  background: linear-gradient(160deg, #ece3f7, #ddccf0);
+  border-color: #c9b0e8;
+}
+
+.vintage-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  font-size: 1.35rem;
+  color: #fff;
+  box-shadow: 0 6px 14px -4px rgba(0, 0, 0, 0.35);
+}
+
+.vintage-icon-badge--pink {
+  background: linear-gradient(160deg, #f06292, #ec407a);
+}
+.vintage-icon-badge--gold {
+  background: linear-gradient(160deg, #e0a83c, #c9821f);
+}
+.vintage-icon-badge--purple {
+  background: linear-gradient(160deg, #9d7fd6, #7c5cbf);
 }

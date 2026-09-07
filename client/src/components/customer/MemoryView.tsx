@@ -1,3 +1,6 @@
+import { FestiveCorners } from './FestiveCorners'
+import { FestiveDivider } from './FestiveDivider'
+
 function driveDownloadUrl(driveId: string): string {
   return `https://drive.google.com/uc?export=download&id=${driveId}`
 }
@@ -25,17 +28,18 @@ export function MemoryView({
 }) {
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
+      <FestiveCorners />
       <div className="vintage-card w-full max-w-md p-6">
-        <div className="vintage-toran -mx-6 -mt-6 mb-4" />
-        <p className="vintage-eyebrow text-xs">🪔 Keepsake Edition 🪔</p>
-        <h1 className="vintage-heading mt-1 text-2xl">A Special Memory For You</h1>
-        <hr className="vintage-rule my-3" />
+        <FestiveDivider icon="❤️" />
+        <h1 className="vintage-heading text-2xl">A Special Memory</h1>
+        <h2 className="vintage-script -mt-1 text-3xl leading-tight">For You</h2>
+        <FestiveDivider icon="🪔" />
 
-        {toName && <p className="vintage-label mt-4 text-xs">To</p>}
-        {toName && <p className="vintage-body text-lg font-medium">{toName}</p>}
+        {toName && <p className="vintage-label text-xs uppercase">To</p>}
+        {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
         {videoUrl && (
-          <div className="mt-6 w-full overflow-hidden border border-[#8a6d3b] bg-black">
+          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
             <iframe
               src={videoUrl}
               className="aspect-[9/16] w-full sm:aspect-video"
@@ -57,7 +61,7 @@ export function MemoryView({
         )}
 
         {photoUrl && (
-          <img src={photoUrl} alt="Saved memory" className="mt-6 w-full border border-[#8a6d3b] object-cover" />
+          <img src={photoUrl} alt="Saved memory" className="mt-6 w-full rounded-2xl border border-[#e3c691] object-cover" />
         )}
         {photoDriveId && (
           <a
@@ -72,7 +76,7 @@ export function MemoryView({
 
         {audioUrl && (
           <div className="mt-6 w-full">
-            <p className="vintage-label mb-2 text-xs">🎤 Voice Message</p>
+            <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
             <audio src={audioUrl} controls className="w-full" />
             {audioDriveId && (
               <a
@@ -89,8 +93,11 @@ export function MemoryView({
 
         {message && <p className="vintage-body mt-6 whitespace-pre-wrap text-base leading-relaxed">{message}</p>}
 
-        {fromName && <p className="vintage-label mt-6 text-xs">From</p>}
-        {fromName && <p className="vintage-body text-lg font-medium">{fromName}</p>}
+        {fromName && <p className="vintage-label mt-6 text-xs uppercase">From</p>}
+        {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
+
+        <FestiveDivider icon="❤️" />
+        <p className="vintage-script text-base">♥ Because every gift has a story ♥</p>
       </div>
     </div>
   )

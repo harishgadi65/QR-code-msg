@@ -4,6 +4,8 @@ import { uploadFileToDrive } from '../../services/driveUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
 import { AudioRecorder } from './AudioRecorder'
+import { FestiveCorners } from './FestiveCorners'
+import { FestiveDivider } from './FestiveDivider'
 
 const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
@@ -140,12 +142,12 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'success') {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
+        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-8">
-          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
-          <div className="mb-4 text-4xl">🪔</div>
+          <div className="mb-4 text-5xl">🪔</div>
           <h1 className="vintage-heading mb-2 text-2xl">Memory Saved</h1>
-          <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">Your keepsake has been archived for safekeeping.</p>
-          <button onClick={onSaved} className="vintage-btn w-full px-6 py-3 text-sm">
+          <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">Your keepsake has been tucked away, safe and sound.</p>
+          <button onClick={onSaved} className="vintage-btn w-full rounded-full px-6 py-3.5 text-sm">
             View Memory
           </button>
         </div>
@@ -156,11 +158,14 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'uploading') {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
+        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-8">
-          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
-          <p className="vintage-eyebrow mb-4 text-xs">Printing your memory…</p>
-          <div className="h-2 w-full overflow-hidden border border-[#8a6d3b] bg-[#e8dcc0]">
-            <div className="h-full bg-[#7a2e2e] transition-all" style={{ width: `${progress}%` }} />
+          <p className="vintage-script mb-4 text-2xl">Printing your memory…</p>
+          <div className="h-2.5 w-full overflow-hidden rounded-full border border-[#e3c691] bg-[#fbe9d2]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#8a2332] to-[#b0223f] transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <p className="vintage-label mt-2 text-xs">{progress}%</p>
         </div>
@@ -171,28 +176,30 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'preview') {
     return (
       <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
+        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-6">
-          <div className="vintage-toran -mx-6 -mt-6 mb-4" />
-          <p className="vintage-eyebrow text-xs">🪔 Special Edition 🪔</p>
-          <h1 className="vintage-heading mt-1 text-2xl">A Memory For You</h1>
-          <hr className="vintage-rule my-3" />
-          {toName && <p className="vintage-label text-xs">To</p>}
-          {toName && <p className="vintage-body text-lg font-medium">{toName}</p>}
-          {videoUrl && <video src={videoUrl} controls playsInline className="mt-4 w-full border border-[#8a6d3b] bg-black" />}
-          {photoUrl && <img src={photoUrl} alt="Preview" className="mt-4 w-full border border-[#8a6d3b] object-cover" />}
+          <FestiveDivider icon="❤️" />
+          <h1 className="vintage-heading text-2xl">A</h1>
+          <h2 className="vintage-script -mt-1 text-4xl leading-tight">Memory For You</h2>
+          <FestiveDivider icon="🎁" />
+
+          {toName && <p className="vintage-label text-xs uppercase">To</p>}
+          {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
+          {videoUrl && <video src={videoUrl} controls playsInline className="mt-4 w-full rounded-2xl border border-[#e3c691] bg-black" />}
+          {photoUrl && <img src={photoUrl} alt="Preview" className="mt-4 w-full rounded-2xl border border-[#e3c691] object-cover" />}
           {audioUrl && <audio src={audioUrl} controls className="mt-4 w-full" />}
           {message && <p className="vintage-body mt-4 whitespace-pre-wrap leading-relaxed">{message}</p>}
-          {fromName && <p className="vintage-label mt-4 text-xs">From</p>}
-          {fromName && <p className="vintage-body text-lg font-medium">{fromName}</p>}
+          {fromName && <p className="vintage-label mt-4 text-xs uppercase">From</p>}
+          {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
 
           {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
 
           <div className="mt-8 grid w-full grid-cols-2 gap-3">
-            <button onClick={() => setStep('form')} className="vintage-btn-outline py-3 text-sm">
+            <button onClick={() => setStep('form')} className="vintage-btn-outline rounded-full py-3 text-sm">
               Edit
             </button>
-            <button onClick={() => void onSave()} className="vintage-btn py-3 text-sm">
-              Save Memory
+            <button onClick={() => void onSave()} className="vintage-btn rounded-full py-3 text-sm">
+              🎁 Save Memory
             </button>
           </div>
         </div>
@@ -202,24 +209,35 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10">
+      <FestiveCorners />
       <div className="vintage-card w-full max-w-md p-6">
-        <div className="vintage-toran -mx-6 -mt-6 mb-4" />
-        <p className="vintage-eyebrow text-center text-xs">🪔 The Gift Gazette 🪔</p>
-        <h1 className="vintage-heading mt-1 text-center text-2xl">Create a Special Memory</h1>
-        <hr className="vintage-rule my-3" />
-        <p className="vintage-body mb-6 text-center text-sm text-[#6b5b3d]">
-          Add a photo, video, voice message or note to this gift.
+        <FestiveDivider icon="❤️" />
+        <h1 className="vintage-heading text-center text-3xl">Create a</h1>
+        <h2 className="vintage-script -mt-1 text-center text-4xl leading-tight sm:text-5xl">Special Memory</h2>
+        <p className="vintage-body mt-2 text-center text-sm text-[#6b5b3d]">
+          Add a photo, video or message to this gift.
         </p>
+        <FestiveDivider icon="🎁" />
+        <p className="vintage-script text-center text-lg">♥ Small Moments, Big Happiness ♥</p>
 
-        <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
-          <button onClick={() => photoInputRef.current?.click()} className="vintage-btn-outline py-3 text-xs">
-            📷 Add Photo
+        <div className="mt-6 mb-4 grid w-full grid-cols-3 gap-3">
+          <button onClick={() => photoInputRef.current?.click()} className="vintage-icon-card vintage-icon-card--pink">
+            <span className="vintage-icon-badge vintage-icon-badge--pink mx-auto mb-2">📷</span>
+            <p className="text-xs font-bold text-[#7a2e2e]">Add Photo</p>
+            <p className="mt-0.5 text-[10px] text-[#8a7a6a]">Capture a moment</p>
+            <p className="mt-1 text-sm text-[#c9709a]">›</p>
           </button>
-          <button onClick={() => videoInputRef.current?.click()} className="vintage-btn-outline py-3 text-xs">
-            🎥 Add Video
+          <button onClick={() => videoInputRef.current?.click()} className="vintage-icon-card vintage-icon-card--gold">
+            <span className="vintage-icon-badge vintage-icon-badge--gold mx-auto mb-2">🎥</span>
+            <p className="text-xs font-bold text-[#7a2e2e]">Add Video</p>
+            <p className="mt-0.5 text-[10px] text-[#8a7a6a]">Share a video</p>
+            <p className="mt-1 text-sm text-[#c9821f]">›</p>
           </button>
-          <button onClick={() => setRecordingAudio(true)} className="vintage-btn-outline py-3 text-xs">
-            🎤 Voice Message
+          <button onClick={() => setRecordingAudio(true)} className="vintage-icon-card vintage-icon-card--purple">
+            <span className="vintage-icon-badge vintage-icon-badge--purple mx-auto mb-2">🎙️</span>
+            <p className="text-xs font-bold text-[#7a2e2e]">Voice Message</p>
+            <p className="mt-0.5 text-[10px] text-[#8a7a6a]">Record your voice</p>
+            <p className="mt-1 text-sm text-[#7c5cbf]">›</p>
           </button>
         </div>
 
@@ -228,7 +246,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
         {photoUrl && (
           <div className="mb-4 w-full">
-            <img src={photoUrl} alt="Selected" className="w-full border border-[#8a6d3b] object-cover" />
+            <img src={photoUrl} alt="Selected" className="w-full rounded-2xl border border-[#e3c691] object-cover" />
             <button onClick={() => setPhotoFile(null)} className="vintage-label mt-1 text-xs underline">
               Remove photo
             </button>
@@ -236,7 +254,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         )}
         {videoUrl && (
           <div className="mb-4 w-full">
-            <video src={videoUrl} controls playsInline className="w-full border border-[#8a6d3b] bg-black" />
+            <video src={videoUrl} controls playsInline className="w-full rounded-2xl border border-[#e3c691] bg-black" />
             <button onClick={() => setVideoFile(null)} className="vintage-label mt-1 text-xs underline">
               Remove video
             </button>
@@ -251,22 +269,47 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           </div>
         )}
 
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-5">
           <div>
-            <label className="vintage-label mb-1 block text-xs">From</label>
-            <input value={fromName} onChange={(e) => setFromName(e.target.value)} maxLength={60} className="vintage-input w-full px-4 py-3" />
+            <div className="mb-1 flex items-center gap-2">
+              <label className="vintage-label flex items-center gap-1.5 whitespace-nowrap text-xs">👤 From</label>
+              <span className="vintage-rule" />
+              <span className="text-xs">💛</span>
+            </div>
+            <input
+              value={fromName}
+              onChange={(e) => setFromName(e.target.value)}
+              maxLength={60}
+              placeholder="Enter your name"
+              className="vintage-input w-full px-4 py-3"
+            />
           </div>
           <div>
-            <label className="vintage-label mb-1 block text-xs">To</label>
-            <input value={toName} onChange={(e) => setToName(e.target.value)} maxLength={60} className="vintage-input w-full px-4 py-3" />
+            <div className="mb-1 flex items-center gap-2">
+              <label className="vintage-label flex items-center gap-1.5 whitespace-nowrap text-xs">❤️ To</label>
+              <span className="vintage-rule" />
+              <span className="text-xs">💛</span>
+            </div>
+            <input
+              value={toName}
+              onChange={(e) => setToName(e.target.value)}
+              maxLength={60}
+              placeholder="Enter receiver's name"
+              className="vintage-input w-full px-4 py-3"
+            />
           </div>
           <div>
-            <label className="vintage-label mb-1 block text-xs">Your Wish</label>
+            <div className="mb-1 flex items-center gap-2">
+              <label className="vintage-label flex items-center gap-1.5 whitespace-nowrap text-xs">📝 Your Wish</label>
+              <span className="vintage-rule" />
+              <span className="text-xs">💛</span>
+            </div>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={MAX_MESSAGE_LENGTH}
               rows={4}
+              placeholder={'Write your special message...\n\ne.g. Happy Birthday! Wishing you lots of happiness and beautiful memories...'}
               className="vintage-input w-full px-4 py-3"
             />
             <p className="vintage-label mt-1 text-right text-[10px]">{message.length}/{MAX_MESSAGE_LENGTH}</p>
@@ -278,10 +321,13 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         <button
           onClick={onSubmitPreview}
           disabled={!canSave}
-          className="vintage-btn mt-6 w-full py-3 text-sm"
+          className="vintage-btn mt-6 w-full rounded-full py-3.5 text-sm"
         >
-          Preview Memory
+          🎁 Preview Memory →
         </button>
+
+        <FestiveDivider icon="❤️" />
+        <p className="vintage-script text-center text-base">♥ Because every gift has a story ♥</p>
       </div>
 
       {pendingTrimFile && (

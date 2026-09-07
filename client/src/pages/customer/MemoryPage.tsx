@@ -4,6 +4,7 @@ import { apiGet } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { CreateMemoryForm } from '../../components/customer/CreateMemoryForm'
 import { MemoryView } from '../../components/customer/MemoryView'
+import { FestiveCorners } from '../../components/customer/FestiveCorners'
 
 type QrStatusResponse =
   | { status: 'empty' }
@@ -27,8 +28,8 @@ type QrStatusResponse =
 function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: string; subtitle: string }) {
   return (
     <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
+      <FestiveCorners />
       <div className="vintage-card w-full max-w-sm p-8">
-        <div className="vintage-toran -mx-8 -mt-8 mb-6" />
         <div className="mb-3 text-5xl">{emoji}</div>
         <h1 className="vintage-heading mb-1 text-xl">{title}</h1>
         {subtitle && <p className="vintage-body text-sm text-[#6b5b3d]">{subtitle}</p>}
@@ -53,15 +54,15 @@ function UploadAuthGate({ children }: { children: ReactNode }) {
   if (!user) {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
+        <FestiveCorners />
         <div className="vintage-card w-full max-w-sm p-8">
-          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
           <div className="mb-3 text-5xl">🔒</div>
           <h1 className="vintage-heading mb-2 text-xl">Sign in to add your memory</h1>
           <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">
             For security, please sign in with Google before uploading a photo, video, voice message, or note to this
             gift.
           </p>
-          <button onClick={() => void loginWithGoogle()} className="vintage-btn w-full px-6 py-3 text-sm">
+          <button onClick={() => void loginWithGoogle()} className="vintage-btn w-full rounded-full px-6 py-3.5 text-sm">
             Sign in with Google
           </button>
         </div>
@@ -71,7 +72,7 @@ function UploadAuthGate({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className="vintage-eyebrow flex items-center justify-center gap-3 border-b border-[#c9b48a] bg-[#e8dcc0] px-4 py-2 text-[11px]">
+      <div className="vintage-eyebrow relative z-10 flex items-center justify-center gap-3 border-b border-[#e3c691] bg-[#fdf0d2] px-4 py-2 text-[11px]">
         <span>Signed in as {user.email}</span>
         <button onClick={() => void logout()} className="underline">
           Sign out
