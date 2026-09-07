@@ -24,69 +24,73 @@ export function MemoryView({
   audioDriveId?: string | null
 }) {
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center bg-gradient-to-b from-rose-50 to-white px-5 py-10 text-center">
-      <h1 className="mb-1 text-2xl font-semibold text-rose-600">❤️ A Special Memory For You ❤️</h1>
+    <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
+      <div className="vintage-card w-full max-w-md p-6">
+        <p className="vintage-eyebrow text-xs">Keepsake Edition</p>
+        <h1 className="vintage-heading mt-1 text-2xl">A Special Memory For You</h1>
+        <hr className="vintage-rule my-3" />
 
-      {toName && <p className="mt-4 text-sm text-slate-500">TO</p>}
-      {toName && <p className="text-lg font-medium text-slate-800">{toName}</p>}
+        {toName && <p className="vintage-label mt-4 text-xs">To</p>}
+        {toName && <p className="vintage-body text-lg font-medium">{toName}</p>}
 
-      {videoUrl && (
-        <div className="mt-6 w-full overflow-hidden rounded-2xl bg-black shadow-md">
-          <iframe
-            src={videoUrl}
-            className="aspect-[9/16] w-full sm:aspect-video"
-            allow="autoplay; fullscreen"
-            allowFullScreen
-            title="Saved memory video"
-          />
-        </div>
-      )}
-      {videoDriveId && (
-        <a
-          href={driveDownloadUrl(videoDriveId)}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 text-sm font-medium text-rose-600 underline"
-        >
-          ⬇ Download video
-        </a>
-      )}
+        {videoUrl && (
+          <div className="mt-6 w-full overflow-hidden border border-[#8a6d3b] bg-black">
+            <iframe
+              src={videoUrl}
+              className="aspect-[9/16] w-full sm:aspect-video"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              title="Saved memory video"
+            />
+          </div>
+        )}
+        {videoDriveId && (
+          <a
+            href={driveDownloadUrl(videoDriveId)}
+            target="_blank"
+            rel="noreferrer"
+            className="vintage-label mt-2 inline-block text-xs underline"
+          >
+            ⬇ Download video
+          </a>
+        )}
 
-      {photoUrl && (
-        <img src={photoUrl} alt="Saved memory" className="mt-6 w-full rounded-2xl object-cover shadow-md" />
-      )}
-      {photoDriveId && (
-        <a
-          href={driveDownloadUrl(photoDriveId)}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 text-sm font-medium text-rose-600 underline"
-        >
-          ⬇ Download photo
-        </a>
-      )}
+        {photoUrl && (
+          <img src={photoUrl} alt="Saved memory" className="mt-6 w-full border border-[#8a6d3b] object-cover" />
+        )}
+        {photoDriveId && (
+          <a
+            href={driveDownloadUrl(photoDriveId)}
+            target="_blank"
+            rel="noreferrer"
+            className="vintage-label mt-2 inline-block text-xs underline"
+          >
+            ⬇ Download photo
+          </a>
+        )}
 
-      {audioUrl && (
-        <div className="mt-6 w-full">
-          <p className="mb-2 text-sm font-medium text-slate-500">🎤 Voice Message</p>
-          <audio src={audioUrl} controls className="w-full" />
-          {audioDriveId && (
-            <a
-              href={driveDownloadUrl(audioDriveId)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block text-sm font-medium text-rose-600 underline"
-            >
-              ⬇ Download voice message
-            </a>
-          )}
-        </div>
-      )}
+        {audioUrl && (
+          <div className="mt-6 w-full">
+            <p className="vintage-label mb-2 text-xs">🎤 Voice Message</p>
+            <audio src={audioUrl} controls className="w-full" />
+            {audioDriveId && (
+              <a
+                href={driveDownloadUrl(audioDriveId)}
+                target="_blank"
+                rel="noreferrer"
+                className="vintage-label mt-2 inline-block text-xs underline"
+              >
+                ⬇ Download voice message
+              </a>
+            )}
+          </div>
+        )}
 
-      {message && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-slate-700">{message}</p>}
+        {message && <p className="vintage-body mt-6 whitespace-pre-wrap text-base leading-relaxed">{message}</p>}
 
-      {fromName && <p className="mt-6 text-sm text-slate-500">FROM</p>}
-      {fromName && <p className="text-lg font-medium text-slate-800">{fromName}</p>}
+        {fromName && <p className="vintage-label mt-6 text-xs">From</p>}
+        {fromName && <p className="vintage-body text-lg font-medium">{fromName}</p>}
+      </div>
     </div>
   )
 }

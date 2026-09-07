@@ -139,129 +139,146 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
   if (step === 'success') {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
-        <div className="mb-4 text-5xl">❤️</div>
-        <h1 className="mb-2 text-xl font-semibold text-slate-800">Your memory has been saved!</h1>
-        <button onClick={onSaved} className="mt-4 rounded-full bg-rose-600 px-6 py-3 font-semibold text-white">
-          Watch Video
-        </button>
+      <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
+        <div className="vintage-card w-full max-w-md p-8">
+          <div className="mb-4 text-4xl">❦</div>
+          <h1 className="vintage-heading mb-2 text-2xl">Memory Saved</h1>
+          <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">Your keepsake has been archived for safekeeping.</p>
+          <button onClick={onSaved} className="vintage-btn w-full px-6 py-3 text-sm">
+            View Memory
+          </button>
+        </div>
       </div>
     )
   }
 
   if (step === 'uploading') {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
-        <p className="mb-3 text-slate-600">Uploading...</p>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full bg-rose-500 transition-all" style={{ width: `${progress}%` }} />
+      <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
+        <div className="vintage-card w-full max-w-md p-8">
+          <p className="vintage-eyebrow mb-4 text-xs">Printing your memory…</p>
+          <div className="h-2 w-full overflow-hidden border border-[#8a6d3b] bg-[#e8dcc0]">
+            <div className="h-full bg-[#7a2e2e] transition-all" style={{ width: `${progress}%` }} />
+          </div>
+          <p className="vintage-label mt-2 text-xs">{progress}%</p>
         </div>
-        <p className="mt-2 text-sm text-slate-500">{progress}%</p>
       </div>
     )
   }
 
   if (step === 'preview') {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center px-5 py-10 text-center">
-        <h1 className="mb-4 text-xl font-semibold text-rose-600">❤️ A Special Memory ❤️</h1>
-        {toName && <p className="text-sm text-slate-500">TO: {toName}</p>}
-        {videoUrl && <video src={videoUrl} controls playsInline className="mt-4 w-full rounded-2xl bg-black" />}
-        {photoUrl && <img src={photoUrl} alt="Preview" className="mt-4 w-full rounded-2xl object-cover" />}
-        {audioUrl && <audio src={audioUrl} controls className="mt-4 w-full" />}
-        {message && <p className="mt-4 whitespace-pre-wrap text-slate-700">{message}</p>}
-        {fromName && <p className="mt-4 text-sm text-slate-500">FROM: {fromName}</p>}
+      <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
+        <div className="vintage-card w-full max-w-md p-6">
+          <p className="vintage-eyebrow text-xs">Special Edition</p>
+          <h1 className="vintage-heading mt-1 text-2xl">A Memory For You</h1>
+          <hr className="vintage-rule my-3" />
+          {toName && <p className="vintage-label text-xs">To</p>}
+          {toName && <p className="vintage-body text-lg font-medium">{toName}</p>}
+          {videoUrl && <video src={videoUrl} controls playsInline className="mt-4 w-full border border-[#8a6d3b] bg-black" />}
+          {photoUrl && <img src={photoUrl} alt="Preview" className="mt-4 w-full border border-[#8a6d3b] object-cover" />}
+          {audioUrl && <audio src={audioUrl} controls className="mt-4 w-full" />}
+          {message && <p className="vintage-body mt-4 whitespace-pre-wrap leading-relaxed">{message}</p>}
+          {fromName && <p className="vintage-label mt-4 text-xs">From</p>}
+          {fromName && <p className="vintage-body text-lg font-medium">{fromName}</p>}
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
 
-        <div className="mt-8 grid w-full grid-cols-2 gap-3">
-          <button onClick={() => setStep('form')} className="rounded-full border border-slate-300 py-3 font-medium">
-            Edit
-          </button>
-          <button onClick={() => void onSave()} className="rounded-full bg-rose-600 py-3 font-semibold text-white">
-            Save Memory
-          </button>
+          <div className="mt-8 grid w-full grid-cols-2 gap-3">
+            <button onClick={() => setStep('form')} className="vintage-btn-outline py-3 text-sm">
+              Edit
+            </button>
+            <button onClick={() => void onSave()} className="vintage-btn py-3 text-sm">
+              Save Memory
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col items-center px-5 py-10">
-      <h1 className="mb-1 text-center text-xl font-semibold text-rose-600">❤️ Create a Special Memory</h1>
-      <p className="mb-6 text-center text-sm text-slate-500">Add a photo, video or message to this gift.</p>
+    <div className="vintage-page flex flex-col items-center px-5 py-10">
+      <div className="vintage-card w-full max-w-md p-6">
+        <p className="vintage-eyebrow text-center text-xs">The Gift Gazette</p>
+        <h1 className="vintage-heading mt-1 text-center text-2xl">Create a Special Memory</h1>
+        <hr className="vintage-rule my-3" />
+        <p className="vintage-body mb-6 text-center text-sm text-[#6b5b3d]">
+          Add a photo, video, voice message or note to this gift.
+        </p>
 
-      <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
-        <button onClick={() => photoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
-          📷 Add Photo
-        </button>
-        <button onClick={() => videoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
-          🎥 Add Video
-        </button>
-        <button onClick={() => setRecordingAudio(true)} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
-          🎤 Voice Message
+        <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
+          <button onClick={() => photoInputRef.current?.click()} className="vintage-btn-outline py-3 text-xs">
+            📷 Add Photo
+          </button>
+          <button onClick={() => videoInputRef.current?.click()} className="vintage-btn-outline py-3 text-xs">
+            🎥 Add Video
+          </button>
+          <button onClick={() => setRecordingAudio(true)} className="vintage-btn-outline py-3 text-xs">
+            🎤 Voice Message
+          </button>
+        </div>
+
+        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onPhotoSelected(e.target.files?.[0])} />
+        <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
+
+        {photoUrl && (
+          <div className="mb-4 w-full">
+            <img src={photoUrl} alt="Selected" className="w-full border border-[#8a6d3b] object-cover" />
+            <button onClick={() => setPhotoFile(null)} className="vintage-label mt-1 text-xs underline">
+              Remove photo
+            </button>
+          </div>
+        )}
+        {videoUrl && (
+          <div className="mb-4 w-full">
+            <video src={videoUrl} controls playsInline className="w-full border border-[#8a6d3b] bg-black" />
+            <button onClick={() => setVideoFile(null)} className="vintage-label mt-1 text-xs underline">
+              Remove video
+            </button>
+          </div>
+        )}
+        {audioUrl && (
+          <div className="mb-4 w-full">
+            <audio src={audioUrl} controls className="w-full" />
+            <button onClick={() => setAudioFile(null)} className="vintage-label mt-1 text-xs underline">
+              Remove voice message
+            </button>
+          </div>
+        )}
+
+        <div className="w-full space-y-4">
+          <div>
+            <label className="vintage-label mb-1 block text-xs">From</label>
+            <input value={fromName} onChange={(e) => setFromName(e.target.value)} maxLength={60} className="vintage-input w-full px-4 py-3" />
+          </div>
+          <div>
+            <label className="vintage-label mb-1 block text-xs">To</label>
+            <input value={toName} onChange={(e) => setToName(e.target.value)} maxLength={60} className="vintage-input w-full px-4 py-3" />
+          </div>
+          <div>
+            <label className="vintage-label mb-1 block text-xs">Your Wish</label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              maxLength={MAX_MESSAGE_LENGTH}
+              rows={4}
+              className="vintage-input w-full px-4 py-3"
+            />
+            <p className="vintage-label mt-1 text-right text-[10px]">{message.length}/{MAX_MESSAGE_LENGTH}</p>
+          </div>
+        </div>
+
+        {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+
+        <button
+          onClick={onSubmitPreview}
+          disabled={!canSave}
+          className="vintage-btn mt-6 w-full py-3 text-sm"
+        >
+          Preview Memory
         </button>
       </div>
-
-      <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onPhotoSelected(e.target.files?.[0])} />
-      <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
-
-      {photoUrl && (
-        <div className="mb-4 w-full">
-          <img src={photoUrl} alt="Selected" className="w-full rounded-xl object-cover" />
-          <button onClick={() => setPhotoFile(null)} className="mt-1 text-sm text-slate-500 underline">
-            Remove photo
-          </button>
-        </div>
-      )}
-      {videoUrl && (
-        <div className="mb-4 w-full">
-          <video src={videoUrl} controls playsInline className="w-full rounded-xl bg-black" />
-          <button onClick={() => setVideoFile(null)} className="mt-1 text-sm text-slate-500 underline">
-            Remove video
-          </button>
-        </div>
-      )}
-      {audioUrl && (
-        <div className="mb-4 w-full">
-          <audio src={audioUrl} controls className="w-full" />
-          <button onClick={() => setAudioFile(null)} className="mt-1 text-sm text-slate-500 underline">
-            Remove voice message
-          </button>
-        </div>
-      )}
-
-      <div className="w-full space-y-3">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">FROM</label>
-          <input value={fromName} onChange={(e) => setFromName(e.target.value)} maxLength={60} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">TO</label>
-          <input value={toName} onChange={(e) => setToName(e.target.value)} maxLength={60} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">YOUR WISH</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            maxLength={MAX_MESSAGE_LENGTH}
-            rows={4}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3"
-          />
-          <p className="mt-1 text-right text-xs text-slate-400">{message.length}/{MAX_MESSAGE_LENGTH}</p>
-        </div>
-      </div>
-
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-
-      <button
-        onClick={onSubmitPreview}
-        disabled={!canSave}
-        className="mt-6 w-full rounded-full bg-rose-600 py-3 font-semibold text-white disabled:opacity-40"
-      >
-        Preview Memory
-      </button>
 
       {pendingTrimFile && (
         <VideoTrimmer
