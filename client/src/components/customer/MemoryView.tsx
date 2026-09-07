@@ -26,7 +26,8 @@ export function MemoryView({
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
       <div className="vintage-card w-full max-w-md p-6">
-        <p className="vintage-eyebrow text-xs">Keepsake Edition</p>
+        <div className="vintage-toran -mx-6 -mt-6 mb-4" />
+        <p className="vintage-eyebrow text-xs">🪔 Keepsake Edition 🪔</p>
         <h1 className="vintage-heading mt-1 text-2xl">A Special Memory For You</h1>
         <hr className="vintage-rule my-3" />
 

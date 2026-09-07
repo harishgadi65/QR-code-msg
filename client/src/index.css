@@ -23,12 +23,26 @@ body {
 }
 
 .vintage-card {
-  background: #f7f0dc;
+  background-color: #f7f0dc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cpath d='M120,55 C155,55 175,90 158,125 C145,152 112,158 90,144 C68,130 62,100 82,80 C93,69 106,66 120,55 Z' fill='%237a2e2e' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center 60%;
+  background-size: 65% auto;
   border: 1px solid #c9b48a;
   box-shadow:
     0 0 0 4px #f7f0dc,
     0 0 0 5px #8a6d3b,
     0 12px 30px -12px rgba(51, 40, 28, 0.45);
+}
+
+/* A toran/bunting strip — the little hanging flag garlands strung above doorways
+   during Indian festivals and weddings — used as a decorative header band on the
+   customer-facing cards for a heritage touch. */
+.vintage-toran {
+  height: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='24'%3E%3Cline x1='0' y1='2' x2='90' y2='2' stroke='%235a4326' stroke-width='2'/%3E%3Cpolygon points='5,2 25,2 15,20' fill='%237a2e2e'/%3E%3Cpolygon points='35,2 55,2 45,20' fill='%23c9821f'/%3E%3Cpolygon points='65,2 85,2 75,20' fill='%233c5a3c'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 90px 22px;
 }
 
 .vintage-heading {
@@ -104,4 +118,8 @@ body {
 
 .vintage-body {
   font-family: Georgia, "Times New Roman", serif;
+}
+
+.vintage-marigold {
+  color: #b5750f;
 }

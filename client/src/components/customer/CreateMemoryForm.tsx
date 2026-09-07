@@ -141,7 +141,8 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
         <div className="vintage-card w-full max-w-md p-8">
-          <div className="mb-4 text-4xl">❦</div>
+          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
+          <div className="mb-4 text-4xl">🪔</div>
           <h1 className="vintage-heading mb-2 text-2xl">Memory Saved</h1>
           <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">Your keepsake has been archived for safekeeping.</p>
           <button onClick={onSaved} className="vintage-btn w-full px-6 py-3 text-sm">
@@ -156,6 +157,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
         <div className="vintage-card w-full max-w-md p-8">
+          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
           <p className="vintage-eyebrow mb-4 text-xs">Printing your memory…</p>
           <div className="h-2 w-full overflow-hidden border border-[#8a6d3b] bg-[#e8dcc0]">
             <div className="h-full bg-[#7a2e2e] transition-all" style={{ width: `${progress}%` }} />
@@ -170,7 +172,8 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     return (
       <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
         <div className="vintage-card w-full max-w-md p-6">
-          <p className="vintage-eyebrow text-xs">Special Edition</p>
+          <div className="vintage-toran -mx-6 -mt-6 mb-4" />
+          <p className="vintage-eyebrow text-xs">🪔 Special Edition 🪔</p>
           <h1 className="vintage-heading mt-1 text-2xl">A Memory For You</h1>
           <hr className="vintage-rule my-3" />
           {toName && <p className="vintage-label text-xs">To</p>}
@@ -200,7 +203,8 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10">
       <div className="vintage-card w-full max-w-md p-6">
-        <p className="vintage-eyebrow text-center text-xs">The Gift Gazette</p>
+        <div className="vintage-toran -mx-6 -mt-6 mb-4" />
+        <p className="vintage-eyebrow text-center text-xs">🪔 The Gift Gazette 🪔</p>
         <h1 className="vintage-heading mt-1 text-center text-2xl">Create a Special Memory</h1>
         <hr className="vintage-rule my-3" />
         <p className="vintage-body mb-6 text-center text-sm text-[#6b5b3d]">

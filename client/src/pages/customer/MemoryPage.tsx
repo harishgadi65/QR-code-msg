@@ -28,6 +28,7 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
   return (
     <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
       <div className="vintage-card w-full max-w-sm p-8">
+        <div className="vintage-toran -mx-8 -mt-8 mb-6" />
         <div className="mb-3 text-5xl">{emoji}</div>
         <h1 className="vintage-heading mb-1 text-xl">{title}</h1>
         {subtitle && <p className="vintage-body text-sm text-[#6b5b3d]">{subtitle}</p>}
@@ -53,6 +54,7 @@ function UploadAuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
         <div className="vintage-card w-full max-w-sm p-8">
+          <div className="vintage-toran -mx-8 -mt-8 mb-6" />
           <div className="mb-3 text-5xl">🔒</div>
           <h1 className="vintage-heading mb-2 text-xl">Sign in to add your memory</h1>
           <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">
