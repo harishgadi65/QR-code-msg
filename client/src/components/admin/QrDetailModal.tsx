@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { apiDelete, apiPatch, apiPost, ApiError } from '../../services/api'
 import { uploadFileToDrive } from '../../services/driveUpload'
 import type { QrDoc } from '../../types/qr'
-import { downloadQrPng } from '../../qr/qrDownload'
+import { downloadQrPng, qrPngDataUrl, qrUrlFor } from '../../qr/qrDownload'
 
 export function QrDetailModal({
   qr,
@@ -18,6 +18,17 @@ export function QrDetailModal({
   const [fromName, setFromName] = useState(qr.fromName ?? '')
   const [toName, setToName] = useState(qr.toName ?? '')
   const [message, setMessage] = useState(qr.message ?? '')
+  const [qrImage, setQrImage] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void qrPngDataUrl(qr.qrId).then((url) => {
+      if (!cancelled) setQrImage(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [qr.qrId])
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
@@ -74,6 +85,17 @@ export function QrDetailModal({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             ✕
           </button>
+        </div>
+
+        <div className="mb-4 flex flex-col items-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+          {qrImage ? (
+            <img src={qrImage} alt={`QR code for ${qr.qrId}`} className="h-40 w-40" />
+          ) : (
+            <div className="flex h-40 w-40 items-center justify-center text-xs text-slate-400">Generating…</div>
+          )}
+          <a href={qrUrlFor(qr.qrId)} target="_blank" rel="noreferrer" className="mt-2 break-all text-center text-xs text-slate-500 hover:underline">
+            {qrUrlFor(qr.qrId)}
+          </a>
         </div>
 
         <div className="mb-4 flex gap-2">
