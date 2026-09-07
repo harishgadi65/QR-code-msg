@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiGet } from '../../services/api'
+import { useAuth } from '../../hooks/useAuth'
 import { CreateMemoryForm } from '../../components/customer/CreateMemoryForm'
 import { MemoryView } from '../../components/customer/MemoryView'
 
@@ -30,6 +31,45 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
       <h1 className="mb-1 text-xl font-semibold text-slate-800">{title}</h1>
       <p className="text-slate-500">{subtitle}</p>
     </div>
+  )
+}
+
+// Gates only the upload step, not the memory view — recipients scanning a completed
+// gift never hit this, only whoever is about to attach the photo/video/message.
+function UploadAuthGate({ children }: { children: ReactNode }) {
+  const { user, loading, loginWithGoogle, logout } = useAuth()
+
+  if (loading) return <CenteredMessage emoji="⏳" title="Loading..." subtitle="" />
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        <div className="mb-3 text-5xl">🔒</div>
+        <h1 className="mb-2 text-xl font-semibold text-slate-800">Sign in to add your memory</h1>
+        <p className="mb-6 max-w-xs text-slate-500">
+          For security, please sign in with Google before uploading a photo, video, voice message, or note to this
+          gift.
+        </p>
+        <button
+          onClick={() => void loginWithGoogle()}
+          className="rounded-full bg-slate-800 px-6 py-3 text-sm font-medium text-white"
+        >
+          Sign in with Google
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-center gap-3 bg-slate-50 px-4 py-2 text-xs text-slate-500">
+        <span>Signed in as {user.email}</span>
+        <button onClick={() => void logout()} className="text-rose-600 hover:underline">
+          Sign out
+        </button>
+      </div>
+      {children}
+    </>
   )
 }
 
@@ -90,6 +130,10 @@ export function MemoryPage() {
       )
     case 'empty':
     default:
-      return <CreateMemoryForm qrId={qrId} onSaved={load} />
+      return (
+        <UploadAuthGate>
+          <CreateMemoryForm qrId={qrId} onSaved={load} />
+        </UploadAuthGate>
+      )
   }
 }

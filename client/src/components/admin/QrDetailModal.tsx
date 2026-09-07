@@ -119,6 +119,12 @@ export function QrDetailModal({
         )}
         {qr.audioUrl && <audio src={qr.audioUrl} controls className="mb-3 w-full" />}
 
+        {qr.uploaderEmail && (
+          <p className="mb-3 text-xs text-slate-400">
+            Uploaded by {qr.uploaderName ? `${qr.uploaderName} (${qr.uploaderEmail})` : qr.uploaderEmail}
+          </p>
+        )}
+
         <div className="mb-4 space-y-2">
           <label className="block text-xs font-medium text-slate-500">From</label>
           <input value={fromName} onChange={(e) => setFromName(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm" />

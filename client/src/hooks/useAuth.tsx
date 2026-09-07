@@ -1,5 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithRedirect,
+  signOut,
+  type User,
+} from 'firebase/auth'
 import { auth } from '../firebase/config'
 
 interface AuthState {
@@ -7,6 +15,7 @@ interface AuthState {
   isAdmin: boolean
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -18,6 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Picks up the account after signInWithRedirect bounces the browser back here
+    // (used by the customer upload gate — see loginWithGoogle below).
+    void getRedirectResult(auth).catch(() => undefined)
     return onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser)
       if (nextUser) {
@@ -34,10 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
+  // Redirect (not popup) because this runs on phones opening a QR link — mobile
+  // Safari/in-app browsers block or silently drop popup-based sign-in far more often.
+  const loginWithGoogle = () => signInWithRedirect(auth, new GoogleAuthProvider())
+
   const logout = () => signOut(auth)
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, login, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   )

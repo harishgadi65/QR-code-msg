@@ -20,6 +20,11 @@ export interface QrDoc {
   audioUrl: string | null
   audioDriveId: string | null
 
+  // Whoever was signed in with Google when they saved the memory — an audit trail,
+  // not an access restriction (anyone with a Google account can still upload).
+  uploaderEmail?: string | null
+  uploaderName?: string | null
+
   scanCount: number
   lastScannedAt: number | null
 

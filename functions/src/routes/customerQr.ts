@@ -6,6 +6,7 @@ import { MediaValidationError } from '../utils/media'
 import { mintUploadAccessToken } from '../googleDrive/driveClient'
 import { deleteFile, ensureQrFolder } from '../googleDrive/driveService'
 import { computeMediaType, qrRef, now, validateAndPublishDriveUpload } from '../services/memoryService'
+import { requireSignedIn, type AuthedRequest } from '../middleware/auth'
 import type { QrDoc } from '../types/qr'
 
 const router = Router()
@@ -114,7 +115,7 @@ async function claimQr(qrId: string) {
 // Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived
 // Drive access token plus the exact folder(s) the browser is allowed to upload into —
 // the browser then uploads the file bytes straight to Google, never through this server.
-router.post('/:qrId/upload-init', async (req, res) => {
+router.post('/:qrId/upload-init', requireSignedIn, async (req, res) => {
   const parsedId = qrIdSchema.safeParse(req.params.qrId)
   if (!parsedId.success) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
@@ -149,7 +150,7 @@ router.post('/:qrId/upload-init', async (req, res) => {
 // Step 2: the browser has already uploaded bytes straight to Drive by this point — this
 // re-validates what actually landed there (mirrors the checks a bypassed browser UI
 // could otherwise skip), sets sharing permissions, and finalizes the Firestore record.
-router.post('/:qrId/finalize', async (req, res) => {
+router.post('/:qrId/finalize', requireSignedIn, async (req: AuthedRequest, res) => {
   const parsedId = qrIdSchema.safeParse(req.params.qrId)
   if (!parsedId.success) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
@@ -216,6 +217,8 @@ router.post('/:qrId/finalize', async (req, res) => {
       videoDriveId: videoDriveId ?? null,
       audioUrl,
       audioDriveId: audioDriveId ?? null,
+      uploaderEmail: req.email ?? null,
+      uploaderName: req.name ?? null,
       mediaType: computeMediaType({ photoUrl, videoUrl }),
       updatedAt: now(),
     })

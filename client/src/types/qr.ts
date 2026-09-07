@@ -20,6 +20,9 @@ export interface QrDoc {
   audioUrl: string | null
   audioDriveId: string | null
 
+  uploaderEmail?: string | null
+  uploaderName?: string | null
+
   scanCount: number
   lastScannedAt: number | null
 

@@ -50,6 +50,8 @@ router.post('/generate', async (req: AuthedRequest, res) => {
           videoDriveId: null,
           audioUrl: null,
           audioDriveId: null,
+          uploaderEmail: null,
+          uploaderName: null,
           scanCount: 0,
           lastScannedAt: null,
           pendingSince: null,
@@ -163,6 +165,8 @@ router.delete('/:qrId/content', async (req, res) => {
     videoDriveId: null,
     audioUrl: null,
     audioDriveId: null,
+    uploaderEmail: null,
+    uploaderName: null,
     mediaType: 'none',
     updatedAt: now(),
   })
