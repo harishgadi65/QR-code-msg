@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { apiGet } from '../../services/api'
+import { apiGet, apiPost, ApiError } from '../../services/api'
 import type { QrDoc, QrStatus } from '../../types/qr'
 import { mediaTypeOf } from '../../types/qr'
 import { downloadQrPng } from '../../qr/qrDownload'
@@ -37,7 +37,8 @@ export function QrBank() {
       params.set('limit', '25')
 
       const res = await apiGet<ListResponse>(`/admin/qr?${params.toString()}`)
-      setItems(res.items)
+      // Trashed QR codes live in the Trash page, not the main bank.
+      setItems(status === 'archived' ? res.items : res.items.filter((i) => i.status !== 'archived'))
       setCursor(res.nextCursor)
     } catch {
       toast.error('Failed to load QR codes.')
@@ -62,6 +63,19 @@ export function QrBank() {
     next.pop()
     setPrevCursors(next)
     void load(next[next.length - 1] ?? null)
+  }
+
+  const onDelete = (qrId: string) => {
+    if (!confirm(`Move ${qrId} to Trash? The QR code will show as unavailable until restored.`)) return
+    void (async () => {
+      try {
+        await apiPost(`/admin/qr/${qrId}/trash`)
+        toast.success('Moved to Trash')
+        void load(prevCursors[prevCursors.length - 1] ?? null)
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : 'Failed to delete QR code.')
+      }
+    })()
   }
 
   return (
@@ -122,6 +136,9 @@ export function QrBank() {
                     </button>
                     <button onClick={() => void downloadQrPng(item.qrId)} className="text-slate-500 hover:underline">
                       Download
+                    </button>
+                    <button onClick={() => onDelete(item.qrId)} className="text-red-600 hover:underline">
+                      Delete
                     </button>
                   </div>
                 </td>

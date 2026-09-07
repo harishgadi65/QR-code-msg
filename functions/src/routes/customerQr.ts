@@ -53,6 +53,10 @@ router.get('/:qrId', async (req, res) => {
       res.json({ status: 'disabled' })
       return
     }
+    if (result.status === 'archived') {
+      res.json({ status: 'archived' })
+      return
+    }
     if (result.status === 'pending_upload') {
       res.json({ status: 'pending_upload' })
       return
@@ -79,6 +83,7 @@ router.get('/:qrId', async (req, res) => {
 const CLAIM_ERROR_MESSAGES: Record<string, string> = {
   not_found: 'This QR code is not registered.',
   disabled: 'This QR code is currently unavailable.',
+  archived: 'This QR code is currently unavailable.',
   already_added: 'This QR code already has a saved memory.',
   in_progress: 'Someone is already saving a memory to this QR. Please try again shortly.',
 }
@@ -90,6 +95,7 @@ async function claimQr(qrId: string) {
     const data = snap.data() as QrDoc
 
     if (data.status === 'disabled') return { ok: false as const, reason: 'disabled' as const }
+    if (data.status === 'archived') return { ok: false as const, reason: 'archived' as const }
     if (data.status === 'content_added') return { ok: false as const, reason: 'already_added' as const }
     if (data.status === 'pending_upload') {
       const timedOut = data.pendingSince != null && now() - data.pendingSince > config.limits.pendingUploadTimeoutMs

@@ -4,6 +4,7 @@ export interface QrDoc {
   qrId: string
   batchId: string | null
   status: QrStatus
+  statusBeforeTrash?: QrStatus | null
   isTest: boolean
 
   fromName: string | null

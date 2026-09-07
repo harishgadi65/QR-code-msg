@@ -5,6 +5,7 @@ import { Login } from './pages/admin/Login'
 import { Dashboard } from './pages/admin/Dashboard'
 import { QrGenerator } from './pages/admin/QrGenerator'
 import { QrBank } from './pages/admin/QrBank'
+import { Trash } from './pages/admin/Trash'
 import { Batches } from './pages/admin/Batches'
 import { Test } from './pages/admin/Test'
 import { Settings } from './pages/admin/Settings'
@@ -33,6 +34,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="qrs" element={<QrBank />} />
+        <Route path="trash" element={<Trash />} />
         <Route path="qrs/create" element={<QrGenerator />} />
         <Route path="batches" element={<Batches />} />
         <Route path="test" element={<Test />} />

@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', end: true },
   { to: '/admin/qrs/create', label: 'QR Generator' },
   { to: '/admin/qrs', label: 'QR Bank' },
+  { to: '/admin/trash', label: 'Trash' },
   { to: '/admin/batches', label: 'Batches' },
   { to: '/admin/test', label: 'Test / Preview' },
   { to: '/admin/settings', label: 'Settings' },

@@ -151,6 +151,7 @@ router.delete('/:qrId/content', async (req, res) => {
   await deleteExistingContentFiles(data)
   await ref.update({
     status: 'empty',
+    statusBeforeTrash: null,
     fromName: null,
     toName: null,
     message: null,
@@ -161,6 +162,35 @@ router.delete('/:qrId/content', async (req, res) => {
     mediaType: 'none',
     updatedAt: now(),
   })
+  res.json({ ok: true })
+})
+
+// Soft delete: hides the QR from the main bank and shows customers a "no longer
+// available" message, without touching its Drive files or Firestore content yet —
+// reversible via /restore. Permanent removal (including Drive cleanup) is the
+// existing DELETE /:qrId/content, applied from the Trash view.
+router.post('/:qrId/trash', async (req, res) => {
+  const ref = qrRef(req.params.qrId)
+  const snap = await ref.get()
+  if (!snap.exists) {
+    res.status(404).json({ error: 'QR code not found.', code: 'NOT_FOUND' })
+    return
+  }
+  const data = snap.data() as QrDoc
+  await ref.update({ status: 'archived', statusBeforeTrash: data.status, updatedAt: now() })
+  res.json({ ok: true })
+})
+
+router.post('/:qrId/restore', async (req, res) => {
+  const ref = qrRef(req.params.qrId)
+  const snap = await ref.get()
+  if (!snap.exists) {
+    res.status(404).json({ error: 'QR code not found.', code: 'NOT_FOUND' })
+    return
+  }
+  const data = snap.data() as QrDoc
+  const restored = data.statusBeforeTrash ?? 'empty'
+  await ref.update({ status: restored, statusBeforeTrash: null, updatedAt: now() })
   res.json({ ok: true })
 })
 

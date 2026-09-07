@@ -8,6 +8,7 @@ type QrStatusResponse =
   | { status: 'empty' }
   | { status: 'content_added'; fromName: string | null; toName: string | null; message: string | null; photoUrl: string | null; videoUrl: string | null }
   | { status: 'disabled' }
+  | { status: 'archived' }
   | { status: 'pending_upload' }
   | { status: 'not_found' }
 
@@ -52,6 +53,14 @@ export function MemoryPage() {
       return <CenteredMessage emoji="🔍" title="QR Code Not Found" subtitle="This QR code is not registered." />
     case 'disabled':
       return <CenteredMessage emoji="🚫" title="QR Code Unavailable" subtitle="This QR code is currently unavailable." />
+    case 'archived':
+      return (
+        <CenteredMessage
+          emoji="💔"
+          title="Memory No Longer Available"
+          subtitle="This memorable message is no longer available."
+        />
+      )
     case 'pending_upload':
       return <CenteredMessage emoji="⏳" title="Saving in progress" subtitle="Someone is currently saving a memory to this QR. Please check back shortly." />
     case 'content_added':
