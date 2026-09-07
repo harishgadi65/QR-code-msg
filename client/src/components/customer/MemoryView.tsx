@@ -1,15 +1,27 @@
+function driveDownloadUrl(driveId: string): string {
+  return `https://drive.google.com/uc?export=download&id=${driveId}`
+}
+
 export function MemoryView({
   fromName,
   toName,
   message,
   photoUrl,
+  photoDriveId,
   videoUrl,
+  videoDriveId,
+  audioUrl,
+  audioDriveId,
 }: {
   fromName: string | null
   toName: string | null
   message: string | null
   photoUrl: string | null
+  photoDriveId?: string | null
   videoUrl: string | null
+  videoDriveId?: string | null
+  audioUrl?: string | null
+  audioDriveId?: string | null
 }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col items-center bg-gradient-to-b from-rose-50 to-white px-5 py-10 text-center">
@@ -29,9 +41,46 @@ export function MemoryView({
           />
         </div>
       )}
+      {videoDriveId && (
+        <a
+          href={driveDownloadUrl(videoDriveId)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 text-sm font-medium text-rose-600 underline"
+        >
+          ⬇ Download video
+        </a>
+      )}
 
       {photoUrl && (
         <img src={photoUrl} alt="Saved memory" className="mt-6 w-full rounded-2xl object-cover shadow-md" />
+      )}
+      {photoDriveId && (
+        <a
+          href={driveDownloadUrl(photoDriveId)}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 text-sm font-medium text-rose-600 underline"
+        >
+          ⬇ Download photo
+        </a>
+      )}
+
+      {audioUrl && (
+        <div className="mt-6 w-full">
+          <p className="mb-2 text-sm font-medium text-slate-500">🎤 Voice Message</p>
+          <audio src={audioUrl} controls className="w-full" />
+          {audioDriveId && (
+            <a
+              href={driveDownloadUrl(audioDriveId)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-sm font-medium text-rose-600 underline"
+            >
+              ⬇ Download voice message
+            </a>
+          )}
+        </div>
       )}
 
       {message && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-slate-700">{message}</p>}

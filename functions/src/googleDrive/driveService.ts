@@ -32,7 +32,7 @@ async function findOrCreateFolder(parentId: string, name: string): Promise<strin
   return createFolder(parentId, name)
 }
 
-export type DriveMediaKind = 'photo' | 'video'
+export type DriveMediaKind = 'photo' | 'video' | 'audio'
 
 export async function ensureQrFolder(qrId: string, kind: DriveMediaKind): Promise<string> {
   const root = config.drive.rootFolderId()
@@ -46,9 +46,9 @@ export interface UploadedFile {
 }
 
 export function urlForFile(fileId: string, kind: DriveMediaKind): string {
-  return kind === 'photo'
-    ? `https://lh3.googleusercontent.com/d/${fileId}=s1600`
-    : `https://drive.google.com/file/d/${fileId}/preview`
+  if (kind === 'photo') return `https://lh3.googleusercontent.com/d/${fileId}=s1600`
+  if (kind === 'audio') return `https://drive.google.com/uc?export=download&id=${fileId}`
+  return `https://drive.google.com/file/d/${fileId}/preview`
 }
 
 export async function makeFilePublic(fileId: string): Promise<void> {

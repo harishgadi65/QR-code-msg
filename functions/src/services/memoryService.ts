@@ -9,7 +9,13 @@ import {
   urlForFile,
   type DriveMediaKind,
 } from '../googleDrive/driveService'
-import { validatePhoto, validateVideoUpload, assertVideoWithinDuration } from '../utils/media'
+import {
+  validatePhoto,
+  validateVideoUpload,
+  validateAudioUpload,
+  assertVideoWithinDuration,
+  assertAudioWithinDuration,
+} from '../utils/media'
 import type { QrDoc } from '../types/qr'
 
 export type MediaType = 'none' | 'photo' | 'video' | 'photo_video'
@@ -38,10 +44,14 @@ export async function validateAndPublishDriveUpload(
 
   if (kind === 'photo') {
     validatePhoto({ mimetype: meta.mimeType, size: meta.size })
-  } else {
+  } else if (kind === 'video') {
     validateVideoUpload({ mimetype: meta.mimeType, size: meta.size })
     const buffer = await downloadFile(driveId)
     await assertVideoWithinDuration(buffer)
+  } else {
+    validateAudioUpload({ mimetype: meta.mimeType, size: meta.size })
+    const buffer = await downloadFile(driveId)
+    await assertAudioWithinDuration(buffer)
   }
 
   await makeFilePublic(driveId)
@@ -55,6 +65,9 @@ export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<v
       : undefined,
     doc.videoDriveId
       ? deleteFile(doc.videoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.videoDriveId}`, err))
+      : undefined,
+    doc.audioDriveId
+      ? deleteFile(doc.audioDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.audioDriveId}`, err))
       : undefined,
   ])
 }

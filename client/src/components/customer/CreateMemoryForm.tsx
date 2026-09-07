@@ -3,6 +3,7 @@ import { apiPost, ApiError } from '../../services/api'
 import { uploadFileToDrive } from '../../services/driveUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
+import { AudioRecorder } from './AudioRecorder'
 
 const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
@@ -15,7 +16,9 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   const [step, setStep] = useState<Step>('form')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [audioFile, setAudioFile] = useState<File | null>(null)
   const [pendingTrimFile, setPendingTrimFile] = useState<{ file: File; duration: number } | null>(null)
+  const [recordingAudio, setRecordingAudio] = useState(false)
   const [fromName, setFromName] = useState('')
   const [toName, setToName] = useState('')
   const [message, setMessage] = useState('')
@@ -27,6 +30,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
   const photoUrl = useMemo(() => (photoFile ? URL.createObjectURL(photoFile) : null), [photoFile])
   const videoUrl = useMemo(() => (videoFile ? URL.createObjectURL(videoFile) : null), [videoFile])
+  const audioUrl = useMemo(() => (audioFile ? URL.createObjectURL(audioFile) : null), [audioFile])
 
   const onPhotoSelected = (file: File | undefined) => {
     if (!file) return
@@ -65,11 +69,11 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     }
   }
 
-  const canSave = Boolean(photoFile || videoFile || message.trim())
+  const canSave = Boolean(photoFile || videoFile || audioFile || message.trim())
 
   const onSubmitPreview = () => {
     if (!canSave) {
-      setError('Please add a photo, video, or message before saving.')
+      setError('Please add a photo, video, voice message, or message before saving.')
       return
     }
     setError(null)
@@ -84,16 +88,17 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
     let claimed = false
     try {
       // Step 1: claim the QR and get a short-lived Drive upload token.
-      const init = await apiPost<{ accessToken: string; photoFolderId?: string; videoFolderId?: string }>(
+      const init = await apiPost<{ accessToken: string; photoFolderId?: string; videoFolderId?: string; audioFolderId?: string }>(
         `/qr/${qrId}/upload-init`,
-        { wantsPhoto: Boolean(photoFile), wantsVideo: Boolean(videoFile) },
+        { wantsPhoto: Boolean(photoFile), wantsVideo: Boolean(videoFile), wantsAudio: Boolean(audioFile) },
       )
       claimed = true
 
       // Step 2: upload straight to Drive — never through our own server.
-      const totalBytes = (photoFile?.size ?? 0) + (videoFile?.size ?? 0)
+      const totalBytes = (photoFile?.size ?? 0) + (videoFile?.size ?? 0) + (audioFile?.size ?? 0)
       let photoDriveId: string | undefined
       let videoDriveId: string | undefined
+      let audioDriveId: string | undefined
       let uploadedSoFar = 0
 
       const trackProgress = (fileSize: number) => (pct: number) => {
@@ -109,11 +114,16 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         videoDriveId = await uploadFileToDrive(init.accessToken, init.videoFolderId, videoFile, videoFile.name, trackProgress(videoFile.size))
         uploadedSoFar += videoFile.size
       }
+      if (audioFile && init.audioFolderId) {
+        audioDriveId = await uploadFileToDrive(init.accessToken, init.audioFolderId, audioFile, audioFile.name, trackProgress(audioFile.size))
+        uploadedSoFar += audioFile.size
+      }
 
       // Step 3: confirm what landed in Drive and save the memory.
       await apiPost(`/qr/${qrId}/finalize`, {
         photoDriveId,
         videoDriveId,
+        audioDriveId,
         fromName: fromName.trim() || undefined,
         toName: toName.trim() || undefined,
         message: message.trim() || undefined,
@@ -158,6 +168,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         {toName && <p className="text-sm text-slate-500">TO: {toName}</p>}
         {videoUrl && <video src={videoUrl} controls playsInline className="mt-4 w-full rounded-2xl bg-black" />}
         {photoUrl && <img src={photoUrl} alt="Preview" className="mt-4 w-full rounded-2xl object-cover" />}
+        {audioUrl && <audio src={audioUrl} controls className="mt-4 w-full" />}
         {message && <p className="mt-4 whitespace-pre-wrap text-slate-700">{message}</p>}
         {fromName && <p className="mt-4 text-sm text-slate-500">FROM: {fromName}</p>}
 
@@ -180,12 +191,15 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
       <h1 className="mb-1 text-center text-xl font-semibold text-rose-600">❤️ Create a Special Memory</h1>
       <p className="mb-6 text-center text-sm text-slate-500">Add a photo, video or message to this gift.</p>
 
-      <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mb-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
         <button onClick={() => photoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
           📷 Add Photo
         </button>
         <button onClick={() => videoInputRef.current?.click()} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
           🎥 Add Video
+        </button>
+        <button onClick={() => setRecordingAudio(true)} className="rounded-xl border border-rose-200 bg-rose-50 py-3 font-medium text-rose-700">
+          🎤 Voice Message
         </button>
       </div>
 
@@ -205,6 +219,14 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           <video src={videoUrl} controls playsInline className="w-full rounded-xl bg-black" />
           <button onClick={() => setVideoFile(null)} className="mt-1 text-sm text-slate-500 underline">
             Remove video
+          </button>
+        </div>
+      )}
+      {audioUrl && (
+        <div className="mb-4 w-full">
+          <audio src={audioUrl} controls className="w-full" />
+          <button onClick={() => setAudioFile(null)} className="mt-1 text-sm text-slate-500 underline">
+            Remove voice message
           </button>
         </div>
       )}
@@ -250,6 +272,16 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           onConfirm={(trimmed) => {
             setVideoFile(trimmed)
             setPendingTrimFile(null)
+          }}
+        />
+      )}
+
+      {recordingAudio && (
+        <AudioRecorder
+          onCancel={() => setRecordingAudio(false)}
+          onConfirm={(file) => {
+            setAudioFile(file)
+            setRecordingAudio(false)
           }}
         />
       )}

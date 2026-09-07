@@ -17,6 +17,9 @@ export interface QrDoc {
   videoUrl: string | null
   videoDriveId: string | null
 
+  audioUrl: string | null
+  audioDriveId: string | null
+
   scanCount: number
   lastScannedAt: number | null
 

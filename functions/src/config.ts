@@ -14,6 +14,8 @@ export const config = {
   limits: {
     maxVideoDurationSeconds: Number(process.env.MAX_VIDEO_DURATION_SECONDS ?? 30),
     maxVideoSizeMb: Number(process.env.MAX_VIDEO_SIZE_MB ?? 80),
+    maxAudioDurationSeconds: Number(process.env.MAX_AUDIO_DURATION_SECONDS ?? 60),
+    maxAudioSizeMb: Number(process.env.MAX_AUDIO_SIZE_MB ?? 15),
     maxPhotoSizeMb: Number(process.env.MAX_PHOTO_SIZE_MB ?? 15),
     maxMessageLength: Number(process.env.MAX_MESSAGE_LENGTH ?? 500),
     maxNameLength: Number(process.env.MAX_NAME_LENGTH ?? 60),

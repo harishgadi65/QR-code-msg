@@ -6,7 +6,18 @@ import { MemoryView } from '../../components/customer/MemoryView'
 
 type QrStatusResponse =
   | { status: 'empty' }
-  | { status: 'content_added'; fromName: string | null; toName: string | null; message: string | null; photoUrl: string | null; videoUrl: string | null }
+  | {
+      status: 'content_added'
+      fromName: string | null
+      toName: string | null
+      message: string | null
+      photoUrl: string | null
+      photoDriveId: string | null
+      videoUrl: string | null
+      videoDriveId: string | null
+      audioUrl: string | null
+      audioDriveId: string | null
+    }
   | { status: 'disabled' }
   | { status: 'archived' }
   | { status: 'pending_upload' }
@@ -70,7 +81,11 @@ export function MemoryPage() {
           toName={data.toName}
           message={data.message}
           photoUrl={data.photoUrl}
+          photoDriveId={data.photoDriveId}
           videoUrl={data.videoUrl}
+          videoDriveId={data.videoDriveId}
+          audioUrl={data.audioUrl}
+          audioDriveId={data.audioDriveId}
         />
       )
     case 'empty':

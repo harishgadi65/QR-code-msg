@@ -57,7 +57,7 @@ export function QrDetailModal({
       toast.success('Message updated')
     })
 
-  const onReplace = (kind: 'photo' | 'video', file: File) => {
+  const onReplace = (kind: 'photo' | 'video' | 'audio', file: File) => {
     void run(async () => {
       const init = await apiPost<{ accessToken: string; folderId: string }>(`/admin/qr/${qr.qrId}/media-upload-init`, { kind })
       const driveId = await uploadFileToDrive(init.accessToken, init.folderId, file, file.name)
@@ -95,6 +95,7 @@ export function QrDetailModal({
         {qr.videoUrl && (
           <iframe src={qr.videoUrl} className="mb-3 aspect-video w-full rounded-lg" allow="autoplay" allowFullScreen />
         )}
+        {qr.audioUrl && <audio src={qr.audioUrl} controls className="mb-3 w-full" />}
 
         <div className="mb-4 space-y-2">
           <label className="block text-xs font-medium text-slate-500">From</label>
@@ -108,7 +109,7 @@ export function QrDetailModal({
           </button>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="mb-4 grid grid-cols-3 gap-2">
           <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-center text-sm">
             Replace Photo
             <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => e.target.files?.[0] && onReplace('photo', e.target.files[0])} />
@@ -116,6 +117,10 @@ export function QrDetailModal({
           <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-center text-sm">
             Replace Video
             <input type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => e.target.files?.[0] && onReplace('video', e.target.files[0])} />
+          </label>
+          <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-center text-sm">
+            Replace Voice
+            <input type="file" accept="audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,audio/x-m4a" hidden onChange={(e) => e.target.files?.[0] && onReplace('audio', e.target.files[0])} />
           </label>
         </div>
 

@@ -48,6 +48,8 @@ router.post('/generate', async (req: AuthedRequest, res) => {
           photoDriveId: null,
           videoUrl: null,
           videoDriveId: null,
+          audioUrl: null,
+          audioDriveId: null,
           scanCount: 0,
           lastScannedAt: null,
           pendingSince: null,
@@ -159,6 +161,8 @@ router.delete('/:qrId/content', async (req, res) => {
     photoDriveId: null,
     videoUrl: null,
     videoDriveId: null,
+    audioUrl: null,
+    audioDriveId: null,
     mediaType: 'none',
     updatedAt: now(),
   })
@@ -224,7 +228,8 @@ router.patch('/:qrId/message', async (req, res) => {
 // admin's browser uploads the file straight to Google using a short-lived token,
 // avoiding the small request-body limits serverless hosts like Vercel impose.
 router.post('/:qrId/media-upload-init', async (req, res) => {
-  const kind = req.body?.kind === 'photo' || req.body?.kind === 'video' ? req.body.kind : null
+  const kind =
+    req.body?.kind === 'photo' || req.body?.kind === 'video' || req.body?.kind === 'audio' ? req.body.kind : null
   if (!kind) {
     res.status(400).json({ error: 'Invalid media kind.', code: 'INVALID_KIND' })
     return
@@ -244,7 +249,8 @@ router.post('/:qrId/media-upload-init', async (req, res) => {
 })
 
 router.post('/:qrId/media-finalize', async (req: AuthedRequest, res) => {
-  const kind = req.body?.kind === 'photo' || req.body?.kind === 'video' ? req.body.kind : null
+  const kind =
+    req.body?.kind === 'photo' || req.body?.kind === 'video' || req.body?.kind === 'audio' ? req.body.kind : null
   const driveId = typeof req.body?.driveId === 'string' ? req.body.driveId : null
   if (!kind || !driveId) {
     res.status(400).json({ error: 'Missing upload details.', code: 'INVALID_INPUT' })
@@ -264,9 +270,11 @@ router.post('/:qrId/media-finalize', async (req: AuthedRequest, res) => {
 
     if (kind === 'photo' && data.photoDriveId) await deleteExistingContentFiles({ photoDriveId: data.photoDriveId })
     if (kind === 'video' && data.videoDriveId) await deleteExistingContentFiles({ videoDriveId: data.videoDriveId })
+    if (kind === 'audio' && data.audioDriveId) await deleteExistingContentFiles({ audioDriveId: data.audioDriveId })
 
     const photoUrl = kind === 'photo' ? url : data.photoUrl
     const videoUrl = kind === 'video' ? url : data.videoUrl
+    const audioUrl = kind === 'audio' ? url : data.audioUrl
 
     await ref.update({
       status: 'content_added',
@@ -274,6 +282,8 @@ router.post('/:qrId/media-finalize', async (req: AuthedRequest, res) => {
       photoDriveId: kind === 'photo' ? driveId : data.photoDriveId,
       videoUrl,
       videoDriveId: kind === 'video' ? driveId : data.videoDriveId,
+      audioUrl,
+      audioDriveId: kind === 'audio' ? driveId : data.audioDriveId,
       mediaType: computeMediaType({ photoUrl, videoUrl }),
       updatedAt: now(),
     })

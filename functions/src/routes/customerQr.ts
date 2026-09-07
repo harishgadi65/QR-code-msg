@@ -69,7 +69,11 @@ router.get('/:qrId', async (req, res) => {
         toName: d.toName,
         message: d.message,
         photoUrl: d.photoUrl,
+        photoDriveId: d.photoDriveId,
         videoUrl: d.videoUrl,
+        videoDriveId: d.videoDriveId,
+        audioUrl: d.audioUrl,
+        audioDriveId: d.audioDriveId,
       })
       return
     }
@@ -119,6 +123,7 @@ router.post('/:qrId/upload-init', async (req, res) => {
   const qrId = parsedId.data
   const wantsPhoto = Boolean(req.body?.wantsPhoto)
   const wantsVideo = Boolean(req.body?.wantsVideo)
+  const wantsAudio = Boolean(req.body?.wantsAudio)
 
   const claim = await claimQr(qrId)
   if (!claim.ok) {
@@ -127,13 +132,14 @@ router.post('/:qrId/upload-init', async (req, res) => {
   }
 
   try {
-    const needsDrive = wantsPhoto || wantsVideo
-    const [accessToken, photoFolderId, videoFolderId] = await Promise.all([
+    const needsDrive = wantsPhoto || wantsVideo || wantsAudio
+    const [accessToken, photoFolderId, videoFolderId, audioFolderId] = await Promise.all([
       needsDrive ? mintUploadAccessToken() : Promise.resolve(undefined),
       wantsPhoto ? ensureQrFolder(qrId, 'photo') : Promise.resolve(undefined),
       wantsVideo ? ensureQrFolder(qrId, 'video') : Promise.resolve(undefined),
+      wantsAudio ? ensureQrFolder(qrId, 'audio') : Promise.resolve(undefined),
     ])
-    res.json({ accessToken, photoFolderId, videoFolderId })
+    res.json({ accessToken, photoFolderId, videoFolderId, audioFolderId })
   } catch {
     await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
     friendlyError(res, 502, 'Something went wrong while preparing your upload. Please try again.', 'UPLOAD_INIT_FAILED')
@@ -169,12 +175,13 @@ router.post('/:qrId/finalize', async (req, res) => {
 
   const photoDriveId = typeof req.body?.photoDriveId === 'string' ? req.body.photoDriveId : undefined
   const videoDriveId = typeof req.body?.videoDriveId === 'string' ? req.body.videoDriveId : undefined
+  const audioDriveId = typeof req.body?.audioDriveId === 'string' ? req.body.audioDriveId : undefined
   const fromName = fields.data.fromName?.trim() || null
   const toName = fields.data.toName?.trim() || null
   const message = fields.data.message?.trim() || null
 
-  if (!photoDriveId && !videoDriveId && !message) {
-    friendlyError(res, 400, 'Please add a photo, video, or message before saving.', 'EMPTY_MEMORY')
+  if (!photoDriveId && !videoDriveId && !audioDriveId && !message) {
+    friendlyError(res, 400, 'Please add a photo, video, voice message, or message before saving.', 'EMPTY_MEMORY')
     return
   }
 
@@ -182,6 +189,7 @@ router.post('/:qrId/finalize', async (req, res) => {
   try {
     let photoUrl: string | null = null
     let videoUrl: string | null = null
+    let audioUrl: string | null = null
 
     if (photoDriveId) {
       ;({ url: photoUrl } = await validateAndPublishDriveUpload(qrId, 'photo', photoDriveId))
@@ -190,6 +198,10 @@ router.post('/:qrId/finalize', async (req, res) => {
     if (videoDriveId) {
       ;({ url: videoUrl } = await validateAndPublishDriveUpload(qrId, 'video', videoDriveId))
       uploadedFileIds.push(videoDriveId)
+    }
+    if (audioDriveId) {
+      ;({ url: audioUrl } = await validateAndPublishDriveUpload(qrId, 'audio', audioDriveId))
+      uploadedFileIds.push(audioDriveId)
     }
 
     await qrRef(qrId).update({
@@ -202,6 +214,8 @@ router.post('/:qrId/finalize', async (req, res) => {
       photoDriveId: photoDriveId ?? null,
       videoUrl,
       videoDriveId: videoDriveId ?? null,
+      audioUrl,
+      audioDriveId: audioDriveId ?? null,
       mediaType: computeMediaType({ photoUrl, videoUrl }),
       updatedAt: now(),
     })

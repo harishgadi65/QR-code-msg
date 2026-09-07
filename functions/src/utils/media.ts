@@ -41,6 +41,9 @@ export class MediaValidationError extends Error {
 
 export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 export const VIDEO_MIME_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
+// Browsers' MediaRecorder produces these depending on platform (webm/opus on
+// Chrome/Android, mp4/aac on Safari/iOS).
+export const AUDIO_MIME_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/x-m4a']
 
 export function validatePhoto(file: { mimetype: string; size: number }) {
   if (!PHOTO_MIME_TYPES.includes(file.mimetype)) {
@@ -60,7 +63,16 @@ export function validateVideoUpload(file: { mimetype: string; size: number }) {
   }
 }
 
-export async function getVideoDurationSeconds(buffer: Buffer): Promise<number> {
+export function validateAudioUpload(file: { mimetype: string; size: number }) {
+  if (!AUDIO_MIME_TYPES.includes(file.mimetype)) {
+    throw new MediaValidationError('Unsupported voice message format.')
+  }
+  if (file.size > config.limits.maxAudioSizeMb * 1024 * 1024) {
+    throw new MediaValidationError(`Voice message is too large. Maximum size is ${config.limits.maxAudioSizeMb}MB.`)
+  }
+}
+
+export async function getMediaDurationSeconds(buffer: Buffer): Promise<number> {
   const ffmpeg = await getFfmpeg()
   const tmpPath = path.join(os.tmpdir(), `probe-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`)
   await writeFile(tmpPath, buffer)
@@ -68,7 +80,7 @@ export async function getVideoDurationSeconds(buffer: Buffer): Promise<number> {
     return await new Promise<number>((resolve, reject) => {
       ffmpeg.ffprobe(tmpPath, (err: Error | null, data: { format: { duration?: number } }) => {
         if (err) {
-          reject(new MediaValidationError('Could not read the video file. It may be corrupted.'))
+          reject(new MediaValidationError('Could not read this file. It may be corrupted.'))
           return
         }
         resolve(data.format.duration ?? 0)
@@ -80,10 +92,19 @@ export async function getVideoDurationSeconds(buffer: Buffer): Promise<number> {
 }
 
 export async function assertVideoWithinDuration(buffer: Buffer): Promise<void> {
-  const duration = await getVideoDurationSeconds(buffer)
+  const duration = await getMediaDurationSeconds(buffer)
   if (duration > config.limits.maxVideoDurationSeconds + 1) {
     throw new MediaValidationError(
       `Video is ${Math.round(duration)}s, which exceeds the ${config.limits.maxVideoDurationSeconds}s limit. Please trim it first.`,
+    )
+  }
+}
+
+export async function assertAudioWithinDuration(buffer: Buffer): Promise<void> {
+  const duration = await getMediaDurationSeconds(buffer)
+  if (duration > config.limits.maxAudioDurationSeconds + 1) {
+    throw new MediaValidationError(
+      `Voice message is ${Math.round(duration)}s, which exceeds the ${config.limits.maxAudioDurationSeconds}s limit.`,
     )
   }
 }
