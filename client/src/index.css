@@ -15,15 +15,23 @@ body {
 .vintage-page {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
   background-color: #fdf3e9;
-  background-image:
-    radial-gradient(circle at 12% 10%, rgba(240, 178, 60, 0.22), transparent 40%),
-    radial-gradient(circle at 88% 8%, rgba(240, 178, 60, 0.18), transparent 38%),
-    radial-gradient(circle at 90% 92%, rgba(220, 60, 90, 0.12), transparent 40%),
-    radial-gradient(circle at 8% 90%, rgba(240, 178, 60, 0.16), transparent 40%),
-    linear-gradient(180deg, #fdf3e9 0%, #fbe9e6 100%);
   color: #3a2a2a;
+}
+
+/* Pinned to the viewport (not the scrollable page) so the illustrated frame's
+   corners stay put on screen even when the form content scrolls past one
+   screen's height, instead of being stretched/cropped across the whole page. */
+.vintage-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url("./assets/festive-bg.png");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .vintage-card {
@@ -35,14 +43,6 @@ body {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
     0 20px 45px -20px rgba(122, 31, 43, 0.35);
-}
-
-.vintage-corner {
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-  line-height: 1;
-  filter: drop-shadow(0 6px 10px rgba(58, 30, 20, 0.15));
 }
 
 .vintage-heading {

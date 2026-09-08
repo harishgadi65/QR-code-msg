@@ -1,4 +1,3 @@
-import { FestiveCorners } from './FestiveCorners'
 import { FestiveDivider } from './FestiveDivider'
 
 function driveDownloadUrl(driveId: string): string {
@@ -28,7 +27,6 @@ export function MemoryView({
 }) {
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
-      <FestiveCorners />
       <div className="vintage-card w-full max-w-md p-6">
         <FestiveDivider icon="❤️" />
         <h1 className="vintage-heading text-2xl">A Special Memory</h1>

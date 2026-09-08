@@ -4,7 +4,6 @@ import { uploadFileToDrive } from '../../services/driveUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
 import { AudioRecorder } from './AudioRecorder'
-import { FestiveCorners } from './FestiveCorners'
 import { FestiveDivider } from './FestiveDivider'
 
 const MAX_VIDEO_SECONDS = 30
@@ -142,7 +141,6 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'success') {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
-        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-8">
           <div className="mb-4 text-5xl">🪔</div>
           <h1 className="vintage-heading mb-2 text-2xl">Memory Saved</h1>
@@ -158,7 +156,6 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'uploading') {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 py-10 text-center">
-        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-8">
           <p className="vintage-script mb-4 text-2xl">Printing your memory…</p>
           <div className="h-2.5 w-full overflow-hidden rounded-full border border-[#e3c691] bg-[#fbe9d2]">
@@ -176,7 +173,6 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   if (step === 'preview') {
     return (
       <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
-        <FestiveCorners />
         <div className="vintage-card w-full max-w-md p-6">
           <FestiveDivider icon="❤️" />
           <h1 className="vintage-heading text-2xl">A</h1>
@@ -209,7 +205,6 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10">
-      <FestiveCorners />
       <div className="vintage-card w-full max-w-md p-6">
         <FestiveDivider icon="❤️" />
         <h1 className="vintage-heading text-center text-3xl">Create a</h1>

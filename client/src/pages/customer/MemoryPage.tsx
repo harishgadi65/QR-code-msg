@@ -4,7 +4,6 @@ import { apiGet } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { CreateMemoryForm } from '../../components/customer/CreateMemoryForm'
 import { MemoryView } from '../../components/customer/MemoryView'
-import { FestiveCorners } from '../../components/customer/FestiveCorners'
 
 type QrStatusResponse =
   | { status: 'empty' }
@@ -28,7 +27,6 @@ type QrStatusResponse =
 function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: string; subtitle: string }) {
   return (
     <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
-      <FestiveCorners />
       <div className="vintage-card w-full max-w-sm p-8">
         <div className="mb-3 text-5xl">{emoji}</div>
         <h1 className="vintage-heading mb-1 text-xl">{title}</h1>
@@ -54,7 +52,6 @@ function UploadAuthGate({ children }: { children: ReactNode }) {
   if (!user) {
     return (
       <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
-        <FestiveCorners />
         <div className="vintage-card w-full max-w-sm p-8">
           <div className="mb-3 text-5xl">🔒</div>
           <h1 className="vintage-heading mb-2 text-xl">Sign in to add your memory</h1>
