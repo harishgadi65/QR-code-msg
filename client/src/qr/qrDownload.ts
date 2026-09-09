@@ -49,13 +49,23 @@ export async function downloadQrSheetPdf(qrIds: string[], productName?: string):
     const imgX = cellX + (CELL_SIZE_MM - QR_IMAGE_SIZE_MM) / 2
     pdf.addImage(dataUrl, 'PNG', imgX, cellY, QR_IMAGE_SIZE_MM, QR_IMAGE_SIZE_MM)
 
-    pdf.setFontSize(10)
-    pdf.text(qrId, cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 5, { align: 'center' })
+    // A customer-facing caption instead of the internal QR ID — the person receiving
+    // the gift has no use for "QR-000014", they need to know to scan it. The ID
+    // itself is still only ever looked up through the admin panel, never printed.
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(11)
+    pdf.text('SCAN ME', cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 5, { align: 'center' })
+    pdf.setFont('helvetica', 'italic')
+    pdf.setFontSize(8)
+    pdf.setTextColor(90)
+    pdf.text("Here's my message", cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 9, { align: 'center' })
+    pdf.setTextColor(0)
+    pdf.setFont('helvetica', 'normal')
 
     if (productName) {
       pdf.setFontSize(8)
       pdf.setTextColor(120)
-      pdf.text(productName, cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 9, { align: 'center' })
+      pdf.text(productName, cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 13, { align: 'center' })
       pdf.setTextColor(0)
     }
   }
