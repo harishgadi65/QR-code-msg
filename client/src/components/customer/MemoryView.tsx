@@ -28,12 +28,11 @@ export function MemoryView({
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
       <div className="vintage-card w-full max-w-md p-6">
-        <FestiveDivider icon="❤️" />
+        <FestiveDivider icon="💐" />
         <h1 className="vintage-heading text-2xl">A Special Memory</h1>
         <h2 className="vintage-script -mt-1 text-3xl leading-tight">For You</h2>
-        <FestiveDivider icon="🪔" />
 
-        {toName && <p className="vintage-label text-xs uppercase">To</p>}
+        {toName && <p className="vintage-label mt-4 text-xs uppercase">To</p>}
         {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
         {videoUrl && (
@@ -94,8 +93,7 @@ export function MemoryView({
         {fromName && <p className="vintage-label mt-6 text-xs uppercase">From</p>}
         {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
 
-        <FestiveDivider icon="❤️" />
-        <p className="vintage-script text-base">♥ Because every gift has a story ♥</p>
+        <p className="vintage-script mt-6 text-base">Because every gift has a story</p>
       </div>
     </div>
   )

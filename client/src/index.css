@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light dark;
+  /* Explicitly light-only — without this, phones with "force dark mode for web
+     content" enabled (common on Android Chrome) algorithmically invert the
+     cream card into a near-black one, since the page never opted out. */
+  color-scheme: light;
 }
 
 body {
