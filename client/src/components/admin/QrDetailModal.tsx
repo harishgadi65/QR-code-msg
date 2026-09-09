@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { apiDelete, apiPatch, apiPost, ApiError, audioProxyUrl } from '../../services/api'
+import { apiDelete, apiPatch, apiPost, ApiError, audioProxyUrl, videoProxyUrl } from '../../services/api'
 import { uploadFileToDrive } from '../../services/driveUpload'
 import type { QrDoc } from '../../types/qr'
 import { downloadQrPng, qrPngDataUrl, qrUrlFor } from '../../qr/qrDownload'
@@ -114,8 +114,8 @@ export function QrDetailModal({
         </div>
 
         {qr.photoUrl && <img src={qr.photoUrl} alt="Memory photo" className="mb-3 max-h-48 w-full rounded-lg object-cover" />}
-        {qr.videoUrl && (
-          <iframe src={qr.videoUrl} className="mb-3 aspect-video w-full rounded-lg" allow="autoplay" allowFullScreen />
+        {qr.videoUrl && qr.videoDriveId && (
+          <video src={videoProxyUrl(qr.videoDriveId)} controls className="mb-3 aspect-video w-full rounded-lg bg-black" />
         )}
         {qr.audioUrl && qr.audioDriveId && (
           <audio src={audioProxyUrl(qr.audioDriveId)} controls className="mb-3 w-full" />

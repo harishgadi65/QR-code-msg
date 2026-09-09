@@ -106,6 +106,36 @@ export async function downloadFile(fileId: string): Promise<Buffer> {
   return Buffer.from(res.data as ArrayBuffer)
 }
 
+export interface DriveFileStream {
+  stream: NodeJS.ReadableStream
+  status: number
+  contentType?: string
+  contentLength?: string
+  contentRange?: string
+}
+
+/**
+ * True passthrough streaming (never buffers the whole file in this function's
+ * memory) with the client's Range header forwarded straight to the Drive API,
+ * which honors it the same way any HTTP media server would — needed for video,
+ * where files run up to 80MB and <video> elements make their own Range requests
+ * to buffer incrementally rather than pulling the whole file at once.
+ */
+export async function getFileStream(fileId: string, range?: string): Promise<DriveFileStream> {
+  const drive = await getDrive()
+  const res = await drive.files.get(
+    { fileId, alt: 'media' },
+    { responseType: 'stream', headers: range ? { Range: range } : undefined },
+  )
+  return {
+    stream: res.data as unknown as NodeJS.ReadableStream,
+    status: res.status,
+    contentType: res.headers['content-type'],
+    contentLength: res.headers['content-length'],
+    contentRange: res.headers['content-range'],
+  }
+}
+
 /**
  * Confirms a file the browser just uploaded directly to Drive actually lives inside
  * the folder we handed out an upload token for — a customer's browser holds a real

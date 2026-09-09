@@ -1,5 +1,5 @@
 import { FestiveDivider } from './FestiveDivider'
-import { audioProxyUrl } from '../../services/api'
+import { audioProxyUrl, videoProxyUrl } from '../../services/api'
 
 function driveDownloadUrl(driveId: string): string {
   return `https://drive.google.com/uc?export=download&id=${driveId}`
@@ -36,15 +36,9 @@ export function MemoryView({
         {toName && <p className="vintage-label mt-4 text-xs uppercase">To</p>}
         {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
-        {videoUrl && (
+        {videoUrl && videoDriveId && (
           <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
-            <iframe
-              src={videoUrl}
-              className="aspect-[9/16] w-full sm:aspect-video"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-              title="Saved memory video"
-            />
+            <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
           </div>
         )}
         {videoDriveId && (
