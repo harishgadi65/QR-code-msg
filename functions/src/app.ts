@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { attachUser, requireAdmin, type AuthedRequest } from './middleware/auth'
 import customerQrRouter from './routes/customerQr'
+import mediaRouter from './routes/media'
 import adminQrRouter from './routes/adminQr'
 import adminBatchesRouter from './routes/adminBatches'
 import adminStatsRouter from './routes/adminStats'
@@ -15,6 +16,7 @@ app.use(attachUser)
 // Vercel forwards the full original request path unchanged to this function, so
 // routes are mounted under /api to match — not stripped down to /qr, /admin, etc.
 app.use('/api/qr', customerQrRouter)
+app.use('/api/media', mediaRouter)
 
 const adminRouter = express.Router()
 adminRouter.use(requireAdmin as express.RequestHandler)

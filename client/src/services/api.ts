@@ -8,6 +8,13 @@ import { auth } from '../firebase/config'
 // domain via its own reverse proxy.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// Plays a saved voice message through our own backend instead of embedding
+// Drive's /preview page — that page works, but its UI chrome includes a "pop
+// out" button that sends visitors straight to a raw Google Drive page.
+export function audioProxyUrl(driveId: string): string {
+  return `${API_BASE}/media/audio/${driveId}`
+}
+
 export class ApiError extends Error {
   status: number
   code?: string

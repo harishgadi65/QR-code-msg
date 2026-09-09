@@ -1,4 +1,5 @@
 import { FestiveDivider } from './FestiveDivider'
+import { audioProxyUrl } from '../../services/api'
 
 function driveDownloadUrl(driveId: string): string {
   return `https://drive.google.com/uc?export=download&id=${driveId}`
@@ -71,25 +72,18 @@ export function MemoryView({
           </a>
         )}
 
-        {audioUrl && (
+        {audioUrl && audioDriveId && (
           <div className="mt-6 w-full">
             <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
-            <iframe
-              src={audioUrl}
-              className="h-20 w-full overflow-hidden rounded-2xl border border-[#e3c691]"
-              allow="autoplay"
-              title="Saved voice message"
-            />
-            {audioDriveId && (
-              <a
-                href={driveDownloadUrl(audioDriveId)}
-                target="_blank"
-                rel="noreferrer"
-                className="vintage-label mt-2 inline-block text-xs underline"
-              >
-                ⬇ Download voice message
-              </a>
-            )}
+            <audio src={audioProxyUrl(audioDriveId)} controls className="w-full" />
+            <a
+              href={driveDownloadUrl(audioDriveId)}
+              target="_blank"
+              rel="noreferrer"
+              className="vintage-label mt-2 inline-block text-xs underline"
+            >
+              ⬇ Download voice message
+            </a>
           </div>
         )}
 
