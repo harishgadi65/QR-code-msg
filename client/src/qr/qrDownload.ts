@@ -9,8 +9,49 @@ export function qrUrlFor(qrId: string): string {
   return `${base}/#/m/${qrId}`
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
 export async function qrPngDataUrl(qrId: string): Promise<string> {
-  return QRCode.toDataURL(qrUrlFor(qrId), { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
+  // errorCorrectionLevel 'H' tolerates up to ~30% of the code being obscured and
+  // still scanning reliably — the centered "SCAN ME" plate below covers roughly
+  // 11% of the image area, well inside that budget with real-world margin.
+  const baseDataUrl = await QRCode.toDataURL(qrUrlFor(qrId), { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
+
+  const img = await loadImage(baseDataUrl)
+  const size = img.width
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return baseDataUrl
+
+  ctx.drawImage(img, 0, 0, size, size)
+
+  const boxWidth = size * 0.56
+  const boxHeight = size * 0.2
+  const boxX = (size - boxWidth) / 2
+  const boxY = (size - boxHeight) / 2
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(boxX, boxY, boxWidth, boxHeight)
+
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#141414'
+  ctx.font = `bold ${Math.round(size * 0.05)}px Arial, sans-serif`
+  ctx.fillText('SCAN ME', size / 2, boxY + boxHeight * 0.38)
+
+  ctx.fillStyle = '#5b5b5b'
+  ctx.font = `italic ${Math.round(size * 0.032)}px Arial, sans-serif`
+  ctx.fillText("Here's my message", size / 2, boxY + boxHeight * 0.72)
+
+  return canvas.toDataURL('image/png')
 }
 
 export async function downloadQrPng(qrId: string): Promise<void> {
@@ -45,27 +86,17 @@ export async function downloadQrSheetPdf(qrIds: string[], productName?: string):
     const cellX = PAGE_MARGIN_MM + col * (CELL_SIZE_MM + CELL_GAP_MM)
     const cellY = PAGE_MARGIN_MM + row * (CELL_SIZE_MM + CELL_GAP_MM)
 
+    // The "SCAN ME" caption is baked into the QR image itself (see qrPngDataUrl) —
+    // nothing about the internal QR ID is printed here, only an optional product
+    // label below the code.
     const dataUrl = await qrPngDataUrl(qrId)
     const imgX = cellX + (CELL_SIZE_MM - QR_IMAGE_SIZE_MM) / 2
     pdf.addImage(dataUrl, 'PNG', imgX, cellY, QR_IMAGE_SIZE_MM, QR_IMAGE_SIZE_MM)
 
-    // A customer-facing caption instead of the internal QR ID — the person receiving
-    // the gift has no use for "QR-000014", they need to know to scan it. The ID
-    // itself is still only ever looked up through the admin panel, never printed.
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(11)
-    pdf.text('SCAN ME', cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 5, { align: 'center' })
-    pdf.setFont('helvetica', 'italic')
-    pdf.setFontSize(8)
-    pdf.setTextColor(90)
-    pdf.text("Here's my message", cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 9, { align: 'center' })
-    pdf.setTextColor(0)
-    pdf.setFont('helvetica', 'normal')
-
     if (productName) {
       pdf.setFontSize(8)
       pdf.setTextColor(120)
-      pdf.text(productName, cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 13, { align: 'center' })
+      pdf.text(productName, cellX + CELL_SIZE_MM / 2, cellY + QR_IMAGE_SIZE_MM + 5, { align: 'center' })
       pdf.setTextColor(0)
     }
   }
