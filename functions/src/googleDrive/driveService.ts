@@ -47,7 +47,10 @@ export interface UploadedFile {
 
 export function urlForFile(fileId: string, kind: DriveMediaKind): string {
   if (kind === 'photo') return `https://lh3.googleusercontent.com/d/${fileId}=s1600`
-  if (kind === 'audio') return `https://drive.google.com/uc?export=download&id=${fileId}`
+  // Audio and video both use Drive's embeddable preview page (loaded in an <iframe>,
+  // not a direct <audio>/<video> src) — the uc?export=download URL used previously
+  // doesn't reliably support the Range requests media elements need, and fails
+  // outright on strict players like iOS Safari once the file is actually saved.
   return `https://drive.google.com/file/d/${fileId}/preview`
 }
 

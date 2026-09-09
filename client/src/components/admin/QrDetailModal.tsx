@@ -117,7 +117,9 @@ export function QrDetailModal({
         {qr.videoUrl && (
           <iframe src={qr.videoUrl} className="mb-3 aspect-video w-full rounded-lg" allow="autoplay" allowFullScreen />
         )}
-        {qr.audioUrl && <audio src={qr.audioUrl} controls className="mb-3 w-full" />}
+        {qr.audioUrl && (
+          <iframe src={qr.audioUrl} className="mb-3 h-20 w-full rounded-lg" allow="autoplay" title="Voice message" />
+        )}
 
         {qr.uploaderEmail && (
           <p className="mb-3 text-xs text-slate-400">

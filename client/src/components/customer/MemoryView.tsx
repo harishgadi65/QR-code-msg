@@ -74,7 +74,12 @@ export function MemoryView({
         {audioUrl && (
           <div className="mt-6 w-full">
             <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
-            <audio src={audioUrl} controls className="w-full" />
+            <iframe
+              src={audioUrl}
+              className="h-20 w-full overflow-hidden rounded-2xl border border-[#e3c691]"
+              allow="autoplay"
+              title="Saved voice message"
+            />
             {audioDriveId && (
               <a
                 href={driveDownloadUrl(audioDriveId)}
