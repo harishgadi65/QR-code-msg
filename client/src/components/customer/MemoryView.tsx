@@ -36,19 +36,22 @@ export function MemoryView({
   audioDriveId?: string | null
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
-  const [downloading, setDownloading] = useState(false)
+  const [downloadingCard, setDownloadingCard] = useState(false)
 
-  // One button: a video or voice message always downloads as its real file,
-  // and the whole card (photo, names, message, decor) is always captured as
-  // a keepsake image too — so a video/voice memory saves both, not just one.
-  const downloadLabel = videoDriveId ? '⬇ Download Video + Card' : audioDriveId ? '⬇ Download Voice + Card' : '⬇ Download'
-
-  async function handleDownload() {
+  // Two separate buttons, each needing its own tap. Firing the media file
+  // download and the card screenshot download together from one tap worked
+  // on desktop, but real phones (Android Chrome in particular) silently
+  // block the second automatic download that follows right after the
+  // first — only the video/voice file came through, the card never did.
+  // Requiring a distinct tap per download sidesteps that entirely.
+  function handleDownloadMedia() {
     if (videoDriveId) triggerDownload(videoDownloadUrl(videoDriveId))
-    if (audioDriveId) triggerDownload(audioDownloadUrl(audioDriveId))
+    else if (audioDriveId) triggerDownload(audioDownloadUrl(audioDriveId))
+  }
 
+  async function handleDownloadCard() {
     if (!contentRef.current) return
-    setDownloading(true)
+    setDownloadingCard(true)
     try {
       const canvas = await html2canvas(contentRef.current, { backgroundColor: '#fdfbf4', scale: 2, useCORS: true })
       const link = document.createElement('a')
@@ -61,7 +64,7 @@ export function MemoryView({
       console.error('screenshot download failed', err)
       toast.error('Could not prepare the download. Please try again.')
     } finally {
-      setDownloading(false)
+      setDownloadingCard(false)
     }
   }
 
@@ -112,13 +115,24 @@ export function MemoryView({
           <p className="vintage-script mt-6 text-base">Because every gift has a story</p>
         </div>
 
-        <button
-          onClick={() => void handleDownload()}
-          disabled={downloading}
-          className="vintage-btn mt-6 w-full rounded-full py-3 text-sm disabled:opacity-60"
-        >
-          {downloading ? 'Preparing…' : downloadLabel}
-        </button>
+        <div className="mt-6 flex w-full flex-col gap-2">
+          {(videoDriveId || audioDriveId) && (
+            <button onClick={handleDownloadMedia} className="vintage-btn w-full rounded-full py-3 text-sm">
+              {videoDriveId ? '⬇ Download Video' : '⬇ Download Voice Message'}
+            </button>
+          )}
+          <button
+            onClick={() => void handleDownloadCard()}
+            disabled={downloadingCard}
+            className={
+              videoDriveId || audioDriveId
+                ? 'vintage-btn-outline w-full rounded-full py-3 text-sm disabled:opacity-60'
+                : 'vintage-btn w-full rounded-full py-3 text-sm disabled:opacity-60'
+            }
+          >
+            {downloadingCard ? 'Preparing…' : '⬇ Download Card'}
+          </button>
+        </div>
       </div>
     </div>
   )
