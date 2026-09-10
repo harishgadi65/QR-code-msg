@@ -1,12 +1,19 @@
 import QRCode from 'qrcode'
 import { jsPDF } from 'jspdf'
 
-export function qrUrlFor(qrId: string): string {
+// `token` is a QR's publicToken — the unguessable value actually printed/scanned —
+// not its sequential qrId. See functions/src/services/memoryService.ts's
+// resolvePublicQrId for why: qrId is predictable (QR-000001, QR-000002, ...), so
+// using it as the public link would let anyone enumerate other people's memories
+// just by guessing nearby numbers. Callers building a link for a QrDoc should pass
+// `qr.publicToken ?? qr.qrId` (the fallback only matters for pre-migration records
+// that haven't been backfilled with a token yet).
+export function qrUrlFor(token: string): string {
   const base = import.meta.env.VITE_APP_BASE_URL?.replace(/\/$/, '') || window.location.origin
   // HashRouter is used (see main.tsx) so the app works on static hosts like GitHub
   // Pages that can't rewrite arbitrary paths to index.html — every route lives after
   // the "#", including the ones printed on physical QR codes.
-  return `${base}/#/m/${qrId}`
+  return `${base}/#/m/${token}`
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -18,11 +25,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-export async function qrPngDataUrl(qrId: string): Promise<string> {
+export async function qrPngDataUrl(token: string): Promise<string> {
   // errorCorrectionLevel 'H' tolerates up to ~30% of the code being obscured and
   // still scanning reliably — the centered "SCAN ME" plate below covers roughly
   // 11% of the image area, well inside that budget with real-world margin.
-  const baseDataUrl = await QRCode.toDataURL(qrUrlFor(qrId), { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
+  const baseDataUrl = await QRCode.toDataURL(qrUrlFor(token), { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
 
   const img = await loadImage(baseDataUrl)
   const size = img.width
@@ -54,8 +61,8 @@ export async function qrPngDataUrl(qrId: string): Promise<string> {
   return canvas.toDataURL('image/png')
 }
 
-export async function downloadQrPng(qrId: string): Promise<void> {
-  const dataUrl = await qrPngDataUrl(qrId)
+export async function downloadQrPng(qrId: string, token: string): Promise<void> {
+  const dataUrl = await qrPngDataUrl(token)
   const a = document.createElement('a')
   a.href = dataUrl
   a.download = `${qrId}.png`
@@ -67,7 +74,12 @@ const CELL_SIZE_MM = 55
 const CELL_GAP_MM = 8
 const QR_IMAGE_SIZE_MM = 40
 
-export async function downloadQrSheetPdf(qrIds: string[], productName?: string): Promise<void> {
+export interface PrintableQr {
+  qrId: string
+  token: string
+}
+
+export async function downloadQrSheetPdf(items: PrintableQr[], productName?: string): Promise<void> {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
@@ -76,8 +88,8 @@ export async function downloadQrSheetPdf(qrIds: string[], productName?: string):
   const rows = Math.max(1, Math.floor((pageHeight - PAGE_MARGIN_MM * 2) / (CELL_SIZE_MM + CELL_GAP_MM)))
   const perPage = cols * rows
 
-  for (let i = 0; i < qrIds.length; i++) {
-    const qrId = qrIds[i]
+  for (let i = 0; i < items.length; i++) {
+    const { token } = items[i]
     const posOnPage = i % perPage
     if (i > 0 && posOnPage === 0) pdf.addPage()
 
@@ -89,7 +101,7 @@ export async function downloadQrSheetPdf(qrIds: string[], productName?: string):
     // The "SCAN ME" caption is baked into the QR image itself (see qrPngDataUrl) —
     // nothing about the internal QR ID is printed here, only an optional product
     // label below the code.
-    const dataUrl = await qrPngDataUrl(qrId)
+    const dataUrl = await qrPngDataUrl(token)
     const imgX = cellX + (CELL_SIZE_MM - QR_IMAGE_SIZE_MM) / 2
     pdf.addImage(dataUrl, 'PNG', imgX, cellY, QR_IMAGE_SIZE_MM, QR_IMAGE_SIZE_MM)
 
@@ -101,5 +113,5 @@ export async function downloadQrSheetPdf(qrIds: string[], productName?: string):
     }
   }
 
-  pdf.save(qrIds.length === 1 ? `${qrIds[0]}.pdf` : `qr-sheet-${qrIds[0]}-to-${qrIds[qrIds.length - 1]}.pdf`)
+  pdf.save(items.length === 1 ? `${items[0].qrId}.pdf` : `qr-sheet-${items[0].qrId}-to-${items[items.length - 1].qrId}.pdf`)
 }

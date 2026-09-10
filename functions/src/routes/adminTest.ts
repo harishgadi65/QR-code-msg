@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { deleteExistingContentFiles, now, qrRef } from '../services/memoryService'
+import { generatePublicToken } from '../services/idAllocator'
 import type { QrDoc } from '../types/qr'
 
 const router = Router()
@@ -12,6 +13,7 @@ router.post('/ensure', async (_req, res) => {
     const nowMs = now()
     const doc: QrDoc = {
       qrId: TEST_QR_ID,
+      publicToken: generatePublicToken(),
       batchId: null,
       status: 'empty',
       isTest: true,

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { db } from '../services/firebaseAdmin'
 import { generateQrSchema, memoryFieldsSchema } from '../utils/validation'
-import { allocateBatchId, allocateQrIds } from '../services/idAllocator'
+import { allocateBatchId, allocateQrIds, generatePublicToken } from '../services/idAllocator'
 import {
   computeMediaType,
   deleteExistingContentFiles,
@@ -38,6 +38,7 @@ router.post('/generate', async (req: AuthedRequest, res) => {
       for (const qrId of chunk) {
         const doc: QrDoc = {
           qrId,
+          publicToken: generatePublicToken(),
           batchId,
           status: 'empty',
           isTest: false,

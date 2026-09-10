@@ -134,7 +134,7 @@ export function QrBank() {
                     <button onClick={() => setSelected(item)} className="text-rose-600 hover:underline">
                       View
                     </button>
-                    <button onClick={() => void downloadQrPng(item.qrId)} className="text-slate-500 hover:underline">
+                    <button onClick={() => void downloadQrPng(item.qrId, item.publicToken ?? item.qrId)} className="text-slate-500 hover:underline">
                       Download
                     </button>
                     <button onClick={() => onDelete(item.qrId)} className="text-red-600 hover:underline">

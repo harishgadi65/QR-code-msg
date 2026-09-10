@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import { db } from '../services/firebaseAdmin'
 import { config } from '../config'
-import { qrIdSchema, memoryFieldsSchema } from '../utils/validation'
+import { memoryFieldsSchema } from '../utils/validation'
 import { MediaValidationError } from '../utils/media'
 import { mintUploadAccessToken } from '../googleDrive/driveClient'
 import { deleteFile, ensureQrFolder } from '../googleDrive/driveService'
-import { computeMediaType, qrRef, now, validateAndPublishDriveUpload } from '../services/memoryService'
+import { computeMediaType, qrRef, now, resolvePublicQrId, validateAndPublishDriveUpload } from '../services/memoryService'
 import { requireSignedIn, type AuthedRequest } from '../middleware/auth'
 import type { QrDoc } from '../types/qr'
 import type { Response, NextFunction } from 'express'
@@ -24,15 +24,14 @@ function friendlyError(res: import('express').Response, status: number, message:
   res.status(status).json({ error: message, code })
 }
 
-router.get('/:qrId', async (req, res) => {
-  const parsed = qrIdSchema.safeParse(req.params.qrId)
-  if (!parsed.success) {
+router.get('/:token', async (req, res) => {
+  const qrId = await resolvePublicQrId(req.params.token)
+  if (!qrId) {
     // "not found" is a normal page state for the customer view, not an HTTP-level
     // error, so it's always a 200 body with a status field — same as empty/disabled/etc.
     res.json({ status: 'not_found' })
     return
   }
-  const qrId = parsed.data
 
   try {
     const result = await db.runTransaction(async (tx) => {
@@ -124,13 +123,12 @@ async function claimQr(qrId: string) {
 // Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived
 // Drive access token plus the exact folder(s) the browser is allowed to upload into —
 // the browser then uploads the file bytes straight to Google, never through this server.
-router.post('/:qrId/upload-init', maybeRequireSignedIn, async (req, res) => {
-  const parsedId = qrIdSchema.safeParse(req.params.qrId)
-  if (!parsedId.success) {
+router.post('/:token/upload-init', maybeRequireSignedIn, async (req, res) => {
+  const qrId = await resolvePublicQrId(req.params.token)
+  if (!qrId) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
     return
   }
-  const qrId = parsedId.data
   const wantsPhoto = Boolean(req.body?.wantsPhoto)
   const wantsVideo = Boolean(req.body?.wantsVideo)
   const wantsAudio = Boolean(req.body?.wantsAudio)
@@ -159,13 +157,12 @@ router.post('/:qrId/upload-init', maybeRequireSignedIn, async (req, res) => {
 // Step 2: the browser has already uploaded bytes straight to Drive by this point — this
 // re-validates what actually landed there (mirrors the checks a bypassed browser UI
 // could otherwise skip), sets sharing permissions, and finalizes the Firestore record.
-router.post('/:qrId/finalize', maybeRequireSignedIn, async (req: AuthedRequest, res) => {
-  const parsedId = qrIdSchema.safeParse(req.params.qrId)
-  if (!parsedId.success) {
+router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest, res) => {
+  const qrId = await resolvePublicQrId(req.params.token)
+  if (!qrId) {
     friendlyError(res, 404, 'This QR code is not registered.', 'NOT_FOUND')
     return
   }
-  const qrId = parsedId.data
 
   const fields = memoryFieldsSchema.safeParse(req.body)
   if (!fields.success) {
@@ -251,13 +248,12 @@ router.post('/:qrId/finalize', maybeRequireSignedIn, async (req: AuthedRequest, 
 
 // Lets the browser release its own claim early (e.g. its direct Drive upload failed)
 // instead of waiting out the full pending-upload timeout before the QR is usable again.
-router.post('/:qrId/cancel-upload', async (req, res) => {
-  const parsedId = qrIdSchema.safeParse(req.params.qrId)
-  if (!parsedId.success) {
+router.post('/:token/cancel-upload', async (req, res) => {
+  const qrId = await resolvePublicQrId(req.params.token)
+  if (!qrId) {
     res.json({ ok: true })
     return
   }
-  const qrId = parsedId.data
 
   const snap = await qrRef(qrId).get()
   if (snap.exists && (snap.data() as QrDoc).status === 'pending_upload') {

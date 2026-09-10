@@ -16,6 +16,7 @@ import {
   assertVideoWithinDuration,
   assertAudioWithinDuration,
 } from '../utils/media'
+import { qrIdSchema, publicTokenSchema } from '../utils/validation'
 import type { QrDoc } from '../types/qr'
 
 export type MediaType = 'none' | 'photo' | 'video' | 'photo_video'
@@ -74,6 +75,22 @@ export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<v
 
 export function qrRef(qrId: string) {
   return db.collection('qrCodes').doc(qrId)
+}
+
+/**
+ * Turns whatever the customer-facing /m/:param URL segment holds into the real
+ * qrId (Firestore doc id) to operate on, or null if it doesn't resolve to anything.
+ * Accepts two shapes: a legacy QR-NNNNNN/TEST-QR-#### id (already-printed QR codes
+ * from before publicToken existed — those keep working exactly as before), or a
+ * publicToken (every QR generated from now on), resolved with a field query since
+ * the token is deliberately not the doc id itself.
+ */
+export async function resolvePublicQrId(param: string): Promise<string | null> {
+  if (qrIdSchema.safeParse(param).success) return param
+
+  if (!publicTokenSchema.safeParse(param).success) return null
+  const snap = await db.collection('qrCodes').where('publicToken', '==', param).limit(1).get()
+  return snap.empty ? null : snap.docs[0].id
 }
 
 export const now = () => Date.now()

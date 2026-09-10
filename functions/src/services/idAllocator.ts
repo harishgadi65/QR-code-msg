@@ -1,6 +1,13 @@
+import { randomBytes } from 'node:crypto'
 import { db } from './firebaseAdmin'
 
 const COUNTERS_COLLECTION = 'counters'
+
+// 128 bits of randomness, hex-encoded — unguessable, and distinct in shape from
+// the QR-NNNNNN admin id so a lookup can tell which scheme it's dealing with.
+export function generatePublicToken(): string {
+  return randomBytes(16).toString('hex')
+}
 
 async function allocateSequence(counterId: string, amount: number): Promise<number> {
   const ref = db.collection(COUNTERS_COLLECTION).doc(counterId)

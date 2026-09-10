@@ -19,16 +19,17 @@ export function QrDetailModal({
   const [toName, setToName] = useState(qr.toName ?? '')
   const [message, setMessage] = useState(qr.message ?? '')
   const [qrImage, setQrImage] = useState<string | null>(null)
+  const token = qr.publicToken ?? qr.qrId
 
   useEffect(() => {
     let cancelled = false
-    void qrPngDataUrl(qr.qrId).then((url) => {
+    void qrPngDataUrl(token).then((url) => {
       if (!cancelled) setQrImage(url)
     })
     return () => {
       cancelled = true
     }
-  }, [qr.qrId])
+  }, [token])
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true)
@@ -93,13 +94,13 @@ export function QrDetailModal({
           ) : (
             <div className="flex h-40 w-40 items-center justify-center text-xs text-slate-400">Generating…</div>
           )}
-          <a href={qrUrlFor(qr.qrId)} target="_blank" rel="noreferrer" className="mt-2 break-all text-center text-xs text-slate-500 hover:underline">
-            {qrUrlFor(qr.qrId)}
+          <a href={qrUrlFor(token)} target="_blank" rel="noreferrer" className="mt-2 break-all text-center text-xs text-slate-500 hover:underline">
+            {qrUrlFor(token)}
           </a>
         </div>
 
         <div className="mb-4 flex gap-2">
-          <button onClick={() => void downloadQrPng(qr.qrId)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+          <button onClick={() => void downloadQrPng(qr.qrId, token)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
             Download QR
           </button>
           {qr.status === 'disabled' ? (

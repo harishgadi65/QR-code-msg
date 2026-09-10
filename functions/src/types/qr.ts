@@ -2,6 +2,11 @@ export type QrStatus = 'empty' | 'pending_upload' | 'content_added' | 'disabled'
 
 export interface QrDoc {
   qrId: string
+  // The random, unguessable string the printed QR code and public link actually
+  // encode (/m/<publicToken>) — kept separate from qrId so the sequential admin
+  // number is never itself a usable access credential. Nullable only because QR
+  // codes generated before this field existed may not have one until backfilled.
+  publicToken: string | null
   batchId: string | null
   status: QrStatus
   statusBeforeTrash?: QrStatus | null

@@ -2,6 +2,10 @@ export type QrStatus = 'empty' | 'pending_upload' | 'content_added' | 'disabled'
 
 export interface QrDoc {
   qrId: string
+  // The unguessable string the printed QR image/link actually encodes — see
+  // functions/src/types/qr.ts for why this is separate from qrId. May be null
+  // for very old records not yet backfilled; callers should fall back to qrId.
+  publicToken: string | null
   batchId: string | null
   status: QrStatus
   statusBeforeTrash?: QrStatus | null

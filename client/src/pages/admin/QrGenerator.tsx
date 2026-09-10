@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { apiPost } from '../../services/api'
-import { downloadQrSheetPdf } from '../../qr/qrDownload'
+import { apiGet, apiPost } from '../../services/api'
+import { downloadQrSheetPdf, type PrintableQr } from '../../qr/qrDownload'
+import type { QrDoc } from '../../types/qr'
 
 interface GenerateResult {
   batchId: string
@@ -10,14 +11,26 @@ interface GenerateResult {
   quantity: number
 }
 
-function expandRange(start: string, end: string): string[] {
-  const prefix = start.replace(/\d+$/, '')
-  const digits = start.length - prefix.length
-  const startN = Number(start.slice(prefix.length))
-  const endN = Number(end.slice(prefix.length))
-  const ids: string[] = []
-  for (let n = startN; n <= endN; n++) ids.push(`${prefix}${String(n).padStart(digits, '0')}`)
-  return ids
+interface ListResponse {
+  items: QrDoc[]
+  nextCursor: string | null
+}
+
+// The printed QR image encodes each QR's publicToken, not its sequential qrId
+// (see qrDownload.ts's qrUrlFor) — so building the sheet means fetching every
+// QR the server just created for this batch, not just re-deriving id strings
+// client-side from the start/end numbers.
+async function fetchBatchQrs(batchId: string): Promise<PrintableQr[]> {
+  const items: PrintableQr[] = []
+  let cursor: string | null = null
+  do {
+    const params = new URLSearchParams({ batchId, limit: '200' })
+    if (cursor) params.set('cursor', cursor)
+    const res: ListResponse = await apiGet<ListResponse>(`/admin/qr?${params.toString()}`)
+    items.push(...res.items.map((item) => ({ qrId: item.qrId, token: item.publicToken ?? item.qrId })))
+    cursor = res.nextCursor
+  } while (cursor)
+  return items
 }
 
 export function QrGenerator() {
@@ -40,14 +53,23 @@ export function QrGenerator() {
     }
   }
 
+  const [preparingSheet, setPreparingSheet] = useState(false)
+
   const onDownloadSheet = async () => {
     if (!result) return
-    const ids = expandRange(result.startQrId, result.endQrId)
-    if (ids.length > 2000) {
+    if (result.quantity > 2000) {
       toast.error('Batches over 2,000 QR codes are too large to render as one PDF in the browser. Download from the QR Bank in smaller chunks instead.')
       return
     }
-    await downloadQrSheetPdf(ids, batchLabel || undefined)
+    setPreparingSheet(true)
+    try {
+      const items = await fetchBatchQrs(result.batchId)
+      await downloadQrSheetPdf(items, batchLabel || undefined)
+    } catch {
+      toast.error('Failed to prepare the PDF sheet. Please try again.')
+    } finally {
+      setPreparingSheet(false)
+    }
   }
 
   return (
@@ -91,9 +113,10 @@ export function QrGenerator() {
           <p className="text-sm text-emerald-700">Batch: {result.batchId}</p>
           <button
             onClick={() => void onDownloadSheet()}
-            className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            disabled={preparingSheet}
+            className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
           >
-            Download printable PDF sheet
+            {preparingSheet ? 'Preparing…' : 'Download printable PDF sheet'}
           </button>
         </div>
       )}
