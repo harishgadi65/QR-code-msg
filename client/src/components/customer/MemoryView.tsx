@@ -16,6 +16,66 @@ function triggerDownload(url: string) {
   link.remove()
 }
 
+// Grabs a still frame from the on-page <video> so the downloaded card can show
+// something in the video's spot instead of a blank label — same idea as a photo.
+// html2canvas itself can't render live <video> content, so this draws straight
+// from the element onto a canvas instead. Resolves null (never throws) if the
+// video hasn't buffered enough to draw from yet, so callers can fall back
+// gracefully rather than the whole download failing.
+function captureVideoFrame(video: HTMLVideoElement): Promise<string | null> {
+  return new Promise((resolve) => {
+    let settled = false
+    const originalTime = video.currentTime
+    const finish = (result: string | null) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      video.currentTime = originalTime
+      resolve(result)
+    }
+    const timer = setTimeout(() => finish(null), 6000)
+
+    const draw = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx || !canvas.width || !canvas.height) {
+          finish(null)
+          return
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        finish(canvas.toDataURL('image/png'))
+      } catch (err) {
+        console.error('video frame capture failed', err)
+        finish(null)
+      }
+    }
+
+    const seekToFrame = () => {
+      // A touch past the very start, which is often a black/fade-in frame.
+      const target = video.duration ? Math.min(0.5, video.duration / 4) : 0
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked)
+        draw()
+      }
+      video.addEventListener('seeked', onSeeked)
+      video.currentTime = target
+    }
+
+    if (video.readyState >= 2) {
+      seekToFrame()
+    } else {
+      const onLoadedData = () => {
+        video.removeEventListener('loadeddata', onLoadedData)
+        seekToFrame()
+      }
+      video.addEventListener('loadeddata', onLoadedData)
+    }
+  })
+}
+
 export function MemoryView({
   fromName,
   toName,
@@ -36,6 +96,7 @@ export function MemoryView({
   audioDriveId?: string | null
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [downloadingCard, setDownloadingCard] = useState(false)
 
   // Two separate buttons, each needing its own tap. Firing the media file
@@ -52,7 +113,20 @@ export function MemoryView({
   async function handleDownloadCard() {
     if (!contentRef.current) return
     setDownloadingCard(true)
+    let insertedFrame: HTMLImageElement | null = null
     try {
+      if (videoDriveId && videoRef.current) {
+        const frameDataUrl = await captureVideoFrame(videoRef.current)
+        const ignoredWrapper = contentRef.current.querySelector<HTMLElement>('[data-html2canvas-ignore]')
+        if (frameDataUrl && ignoredWrapper?.parentElement) {
+          insertedFrame = document.createElement('img')
+          insertedFrame.src = frameDataUrl
+          insertedFrame.className = 'w-full overflow-hidden rounded-2xl border border-[#e3c691] object-cover'
+          ignoredWrapper.parentElement.insertBefore(insertedFrame, ignoredWrapper)
+          await insertedFrame.decode().catch(() => undefined)
+        }
+      }
+
       const canvas = await html2canvas(contentRef.current, { backgroundColor: '#fdfbf4', scale: 2, useCORS: true })
       const link = document.createElement('a')
       link.href = canvas.toDataURL('image/png')
@@ -64,6 +138,7 @@ export function MemoryView({
       console.error('screenshot download failed', err)
       toast.error('Could not prepare the download. Please try again.')
     } finally {
+      insertedFrame?.remove()
       setDownloadingCard(false)
     }
   }
@@ -82,11 +157,20 @@ export function MemoryView({
           {videoUrl && videoDriveId && (
             <div className="mt-6 w-full">
               <p className="vintage-label mb-2 text-xs">🎥 Video Message</p>
-              {/* html2canvas can't render <video> frames — it would just paint this
-                  box solid black in the downloaded keepsake image — so it's skipped
-                  from that capture and the label above stands in for it there. */}
+              {/* html2canvas can't render live <video> content — it would just paint
+                  this box solid black in the downloaded card — so it's skipped from
+                  that capture. handleDownloadCard swaps in a captured still frame
+                  here instead (falling back to just this label if that fails). */}
               <div data-html2canvas-ignore className="w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
-                <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
+                <video
+                  ref={videoRef}
+                  src={videoProxyUrl(videoDriveId)}
+                  controls
+                  playsInline
+                  preload="auto"
+                  crossOrigin="anonymous"
+                  className="aspect-[9/16] w-full sm:aspect-video"
+                />
               </div>
             </div>
           )}
