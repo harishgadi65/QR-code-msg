@@ -114,7 +114,7 @@ export function MemoryPage() {
     case 'archived':
       return (
         <CenteredMessage
-          emoji="💔"
+          emoji="💐"
           title="Memory No Longer Available"
           subtitle="This memorable message is no longer available."
         />
