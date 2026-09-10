@@ -236,8 +236,14 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           </button>
         </div>
 
-        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onPhotoSelected(e.target.files?.[0])} />
-        <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
+        {/* A wildcard accept ("image/*"/"video/*") makes Chrome on Android launch its
+            built-in Photos picker directly — just the gallery grid and a camera
+            shortcut. A comma-list of specific MIME types ("image/jpeg,image/png,...")
+            instead falls back to the generic Android file-chooser dialog, which lists
+            every installed app that can supply a file (Files, Google Drive, etc).
+            The actual format/size checks still happen in JS after selection. */}
+        <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={(e) => onPhotoSelected(e.target.files?.[0])} />
+        <input ref={videoInputRef} type="file" accept="video/*" hidden onChange={(e) => void onVideoSelected(e.target.files?.[0])} />
 
         {photoUrl && (
           <div className="mb-4 w-full">
