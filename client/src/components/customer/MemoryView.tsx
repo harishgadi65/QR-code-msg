@@ -38,21 +38,15 @@ export function MemoryView({
   const contentRef = useRef<HTMLDivElement>(null)
   const [downloading, setDownloading] = useState(false)
 
-  // One button, adapted to whatever this memory actually holds: a video or
-  // voice message is downloaded as its real file, but a photo/text-only
-  // memory has nothing to "download" as a single file — so instead it
-  // captures the whole card (photo, names, message, decor) as one image.
-  const downloadLabel = videoDriveId ? '⬇ Download Video' : audioDriveId ? '⬇ Download Voice Message' : '⬇ Download'
+  // One button: a video or voice message always downloads as its real file,
+  // and the whole card (photo, names, message, decor) is always captured as
+  // a keepsake image too — so a video/voice memory saves both, not just one.
+  const downloadLabel = videoDriveId ? '⬇ Download Video + Card' : audioDriveId ? '⬇ Download Voice + Card' : '⬇ Download'
 
   async function handleDownload() {
-    if (videoDriveId) {
-      triggerDownload(videoDownloadUrl(videoDriveId))
-      return
-    }
-    if (audioDriveId) {
-      triggerDownload(audioDownloadUrl(audioDriveId))
-      return
-    }
+    if (videoDriveId) triggerDownload(videoDownloadUrl(videoDriveId))
+    if (audioDriveId) triggerDownload(audioDownloadUrl(audioDriveId))
+
     if (!contentRef.current) return
     setDownloading(true)
     try {
@@ -83,8 +77,14 @@ export function MemoryView({
           {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
           {videoUrl && videoDriveId && (
-            <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
-              <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
+            <div className="mt-6 w-full">
+              <p className="vintage-label mb-2 text-xs">🎥 Video Message</p>
+              {/* html2canvas can't render <video> frames — it would just paint this
+                  box solid black in the downloaded keepsake image — so it's skipped
+                  from that capture and the label above stands in for it there. */}
+              <div data-html2canvas-ignore className="w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
+                <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
+              </div>
             </div>
           )}
 
