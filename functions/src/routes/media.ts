@@ -5,6 +5,22 @@ const router = Router()
 
 const DRIVE_FILE_ID_RE = /^[\w-]{10,100}$/
 
+const EXTENSION_BY_MIME: Record<string, string> = {
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+  'audio/webm': 'webm',
+  'audio/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
+  'audio/mpeg': 'mp3',
+  'audio/ogg': 'ogg',
+  'audio/wav': 'wav',
+}
+
+function extensionFor(mimeType: string, mimePrefix: 'audio/' | 'video/'): string {
+  return EXTENSION_BY_MIME[mimeType] ?? (mimePrefix === 'video/' ? 'mp4' : 'm4a')
+}
+
 /**
  * Public, unauthenticated proxy so a gift recipient (never signed in) can play a
  * saved photo/video/voice message through a plain <audio>/<video> element instead
@@ -45,6 +61,13 @@ function streamMedia(mimePrefix: 'audio/' | 'video/') {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
       if (file.contentLength) res.setHeader('Content-Length', file.contentLength)
       if (file.contentRange) res.setHeader('Content-Range', file.contentRange)
+      // ?download=1 asks for a real "Save file" prompt instead of inline playback.
+      // A plain <a href> to a cross-origin URL can't force that on its own — the
+      // browser only downloads instead of navigating when the response itself says
+      // to, via Content-Disposition: attachment.
+      if (req.query.download) {
+        res.setHeader('Content-Disposition', `attachment; filename="memory.${extensionFor(meta.mimeType, mimePrefix)}"`)
+      }
 
       file.stream.on('error', (err) => {
         console.error('media stream failed mid-response', err)

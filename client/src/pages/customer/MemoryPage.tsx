@@ -128,7 +128,6 @@ export function MemoryPage() {
           toName={data.toName}
           message={data.message}
           photoUrl={data.photoUrl}
-          photoDriveId={data.photoDriveId}
           videoUrl={data.videoUrl}
           videoDriveId={data.videoDriveId}
           audioUrl={data.audioUrl}

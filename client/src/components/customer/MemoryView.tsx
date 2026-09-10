@@ -1,8 +1,19 @@
+import { useRef, useState } from 'react'
+import html2canvas from 'html2canvas'
+import toast from 'react-hot-toast'
 import { FestiveDivider } from './FestiveDivider'
-import { audioProxyUrl, videoProxyUrl } from '../../services/api'
+import { audioDownloadUrl, audioProxyUrl, videoDownloadUrl, videoProxyUrl } from '../../services/api'
 
-function driveDownloadUrl(driveId: string): string {
-  return `https://drive.google.com/uc?export=download&id=${driveId}`
+// A cross-origin URL whose response carries Content-Disposition: attachment
+// (see audioDownloadUrl/videoDownloadUrl) downloads on click without ever
+// navigating the page away — no fetch/blob juggling needed.
+function triggerDownload(url: string) {
+  const link = document.createElement('a')
+  link.href = url
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
 }
 
 export function MemoryView({
@@ -10,7 +21,6 @@ export function MemoryView({
   toName,
   message,
   photoUrl,
-  photoDriveId,
   videoUrl,
   videoDriveId,
   audioUrl,
@@ -20,73 +30,95 @@ export function MemoryView({
   toName: string | null
   message: string | null
   photoUrl: string | null
-  photoDriveId?: string | null
   videoUrl: string | null
   videoDriveId?: string | null
   audioUrl?: string | null
   audioDriveId?: string | null
 }) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  // One button, adapted to whatever this memory actually holds: a video or
+  // voice message is downloaded as its real file, but a photo/text-only
+  // memory has nothing to "download" as a single file — so instead it
+  // captures the whole card (photo, names, message, decor) as one image.
+  const downloadLabel = videoDriveId ? '⬇ Download Video' : audioDriveId ? '⬇ Download Voice Message' : '⬇ Download'
+
+  async function handleDownload() {
+    if (videoDriveId) {
+      triggerDownload(videoDownloadUrl(videoDriveId))
+      return
+    }
+    if (audioDriveId) {
+      triggerDownload(audioDownloadUrl(audioDriveId))
+      return
+    }
+    if (!contentRef.current) return
+    setDownloading(true)
+    try {
+      const canvas = await html2canvas(contentRef.current, { backgroundColor: '#fdfbf4', scale: 2, useCORS: true })
+      const link = document.createElement('a')
+      link.href = canvas.toDataURL('image/png')
+      link.download = 'memory.png'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (err) {
+      console.error('screenshot download failed', err)
+      toast.error('Could not prepare the download. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
       <div className="vintage-card w-full max-w-md p-6">
-        <FestiveDivider icon="💐" />
-        <h1 className="vintage-heading text-2xl">A Special Memory</h1>
-        <h2 className="vintage-script -mt-1 text-3xl leading-tight">For You</h2>
+        <div ref={contentRef}>
+          <FestiveDivider icon="💐" />
+          <h1 className="vintage-heading text-2xl">A Special Memory</h1>
+          <h2 className="vintage-script -mt-1 text-3xl leading-tight">For You</h2>
 
-        {toName && <p className="vintage-label mt-4 text-xs uppercase">To</p>}
-        {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
+          {toName && <p className="vintage-label mt-4 text-xs uppercase">To</p>}
+          {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
-        {videoUrl && videoDriveId && (
-          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
-            <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
-          </div>
-        )}
-        {videoDriveId && (
-          <a
-            href={driveDownloadUrl(videoDriveId)}
-            target="_blank"
-            rel="noreferrer"
-            className="vintage-label mt-2 inline-block text-xs underline"
-          >
-            ⬇ Download video
-          </a>
-        )}
+          {videoUrl && videoDriveId && (
+            <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
+              <video src={videoProxyUrl(videoDriveId)} controls playsInline className="aspect-[9/16] w-full sm:aspect-video" />
+            </div>
+          )}
 
-        {photoUrl && (
-          <img src={photoUrl} alt="Saved memory" className="mt-6 w-full rounded-2xl border border-[#e3c691] object-cover" />
-        )}
-        {photoDriveId && (
-          <a
-            href={driveDownloadUrl(photoDriveId)}
-            target="_blank"
-            rel="noreferrer"
-            className="vintage-label mt-2 inline-block text-xs underline"
-          >
-            ⬇ Download photo
-          </a>
-        )}
+          {photoUrl && (
+            <img
+              src={photoUrl}
+              alt="Saved memory"
+              crossOrigin="anonymous"
+              className="mt-6 w-full rounded-2xl border border-[#e3c691] object-cover"
+            />
+          )}
 
-        {audioUrl && audioDriveId && (
-          <div className="mt-6 w-full">
-            <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
-            <audio src={audioProxyUrl(audioDriveId)} controls className="w-full" />
-            <a
-              href={driveDownloadUrl(audioDriveId)}
-              target="_blank"
-              rel="noreferrer"
-              className="vintage-label mt-2 inline-block text-xs underline"
-            >
-              ⬇ Download voice message
-            </a>
-          </div>
-        )}
+          {audioUrl && audioDriveId && (
+            <div className="mt-6 w-full">
+              <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
+              <audio src={audioProxyUrl(audioDriveId)} controls className="w-full" />
+            </div>
+          )}
 
-        {message && <p className="vintage-body mt-6 whitespace-pre-wrap text-base leading-relaxed">{message}</p>}
+          {message && <p className="vintage-body mt-6 whitespace-pre-wrap text-base leading-relaxed">{message}</p>}
 
-        {fromName && <p className="vintage-label mt-6 text-xs uppercase">From</p>}
-        {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
+          {fromName && <p className="vintage-label mt-6 text-xs uppercase">From</p>}
+          {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
 
-        <p className="vintage-script mt-6 text-base">Because every gift has a story</p>
+          <p className="vintage-script mt-6 text-base">Because every gift has a story</p>
+        </div>
+
+        <button
+          onClick={() => void handleDownload()}
+          disabled={downloading}
+          className="vintage-btn mt-6 w-full rounded-full py-3 text-sm disabled:opacity-60"
+        >
+          {downloading ? 'Preparing…' : downloadLabel}
+        </button>
       </div>
     </div>
   )

@@ -21,6 +21,16 @@ export function videoProxyUrl(driveId: string): string {
   return `${API_BASE}/media/video/${driveId}`
 }
 
+// Same proxy, but tells the backend to send Content-Disposition: attachment so
+// the browser saves the file instead of playing it inline.
+export function audioDownloadUrl(driveId: string): string {
+  return `${audioProxyUrl(driveId)}?download=1`
+}
+
+export function videoDownloadUrl(driveId: string): string {
+  return `${videoProxyUrl(driveId)}?download=1`
+}
+
 export class ApiError extends Error {
   status: number
   code?: string
