@@ -10,11 +10,12 @@ const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_PHOTO_MB = 15
 const MAX_VIDEO_MB = 80
-// Must match the server's config.limits.maxMemoryExpiryDays/maxMemoryScanLimit defaults
-// (functions/src/config.ts) — the server re-validates these independently, so a mismatch
-// just means a confusing error, not a security gap.
+// Must match the server's config.limits.maxMemoryExpiryDays/minMemoryScanLimit/
+// maxMemoryScanLimit defaults (functions/src/config.ts) — the server re-validates these
+// independently, so a mismatch just means a confusing error, not a security gap.
 const MAX_EXPIRY_DAYS = 10
-const MAX_SCANS = 7
+const MIN_SCANS = 5
+const MAX_SCANS = 10
 
 type Step = 'form' | 'preview' | 'uploading' | 'success'
 
@@ -31,7 +32,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   const [expiryEnabled, setExpiryEnabled] = useState(false)
   const [expiryDays, setExpiryDays] = useState(7)
   const [scanLimitEnabled, setScanLimitEnabled] = useState(false)
-  const [maxScans, setMaxScans] = useState(3)
+  const [maxScans, setMaxScans] = useState(MIN_SCANS)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
@@ -385,7 +386,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
                 onChange={(e) => setMaxScans(Number(e.target.value))}
                 className="vintage-input px-3 py-2"
               >
-                {Array.from({ length: MAX_SCANS }, (_, i) => i + 1).map((n) => (
+                {Array.from({ length: MAX_SCANS - MIN_SCANS + 1 }, (_, i) => i + MIN_SCANS).map((n) => (
                   <option key={n} value={n}>
                     {n} view{n === 1 ? '' : 's'}
                   </option>

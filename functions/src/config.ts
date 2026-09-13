@@ -27,7 +27,8 @@ export const config = {
     // routes/customerQr.ts's finalize) — how far out an auto-expiry can be set,
     // and the highest view limit they're allowed to pick.
     maxMemoryExpiryDays: Number(process.env.MAX_MEMORY_EXPIRY_DAYS ?? 10),
-    maxMemoryScanLimit: Number(process.env.MAX_MEMORY_SCAN_LIMIT ?? 7),
+    minMemoryScanLimit: Number(process.env.MIN_MEMORY_SCAN_LIMIT ?? 5),
+    maxMemoryScanLimit: Number(process.env.MAX_MEMORY_SCAN_LIMIT ?? 10),
   },
   appBaseUrl: () => process.env.APP_BASE_URL ?? '',
   // Off by default: flips on once Google sign-in is enabled in the Firebase console
