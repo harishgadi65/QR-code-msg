@@ -127,7 +127,19 @@ export function MemoryView({
         }
       }
 
-      const canvas = await html2canvas(contentRef.current, { backgroundColor: '#fdfbf4', scale: 2, useCORS: true })
+      // html2canvas captures relative to the current scroll position by default, so
+      // if the page is scrolled down (it always is here — this button sits below
+      // the fold) the capture comes out cropped/offset. Pinning scrollX/scrollY to 0
+      // and the window size to the full document forces it to capture from the top.
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: '#fdfbf4',
+        scale: 2,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
+      })
       const link = document.createElement('a')
       link.href = canvas.toDataURL('image/png')
       link.download = 'memory.png'
@@ -146,7 +158,7 @@ export function MemoryView({
   return (
     <div className="vintage-page flex flex-col items-center px-5 py-10 text-center">
       <div className="vintage-card w-full max-w-md p-6">
-        <div ref={contentRef}>
+        <div ref={contentRef} className="pb-2">
           <FestiveDivider icon="💐" />
           <h1 className="vintage-heading text-2xl">A Special Memory</h1>
           <h2 className="vintage-script -mt-1 text-3xl leading-tight">For You</h2>
