@@ -105,6 +105,19 @@ the QR code. Firestore only stores the Drive file ID and a display URL.
 Uploaded files are shared as "anyone with the link can view" so the giver/receiver can
 see them without a Google account. Nothing else in Drive is touched.
 
+> **If uploads/viewing suddenly break with `invalid_grant: Token has been expired or
+> revoked`** (visible in Vercel's function logs): the refresh token above stopped
+> working. The most common cause is the OAuth consent screen (Google Cloud Console →
+> "APIs & Services" → "OAuth consent screen") still being in **Testing** publishing
+> status — Google only gives *those* refresh tokens a ~7 day lifetime, so this then
+> recurs roughly weekly. The permanent fix is publishing the consent screen to
+> **Production** (no Google verification is required for the `drive.file` scope this
+> app uses, only an app name/logo/support email). Until that's done, re-running step 3
+> above (`npm run get-drive-token`, signed in as the same Google account) gets a fresh
+> token — existing files stay accessible since Drive access for `drive.file` is tied to
+> the account + app, not the specific token, but the new run also mints a new
+> `GOOGLE_DRIVE_ROOT_FOLDER_ID`, which must be updated everywhere alongside the token.
+
 ### How uploads actually work
 
 The browser never sends photo/video bytes to our own server — only to Google, and only
