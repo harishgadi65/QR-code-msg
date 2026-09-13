@@ -34,10 +34,20 @@ async function findOrCreateFolder(parentId: string, name: string): Promise<strin
 
 export type DriveMediaKind = 'photo' | 'video' | 'audio'
 
-export async function ensureQrFolder(qrId: string, kind: DriveMediaKind): Promise<string> {
+// Kept separate from ensureQrFolder so a caller needing multiple kinds for the same
+// qrId (see upload-init) can resolve this once and pass it in, rather than each kind
+// racing to find-or-create the same per-QR folder in parallel — findOrCreateFolder's
+// find-then-create isn't atomic, so concurrent calls for the same qrId can each see
+// "not found" and each create their own duplicate, silently splitting that QR's photo/
+// video/audio across different duplicate folders.
+export async function ensureQrRootFolder(qrId: string): Promise<string> {
   const root = config.drive.rootFolderId()
-  const qrFolderId = await findOrCreateFolder(root, qrId)
-  return findOrCreateFolder(qrFolderId, kind)
+  return findOrCreateFolder(root, qrId)
+}
+
+export async function ensureQrFolder(qrId: string, kind: DriveMediaKind, qrFolderId?: string): Promise<string> {
+  const resolvedQrFolderId = qrFolderId ?? (await ensureQrRootFolder(qrId))
+  return findOrCreateFolder(resolvedQrFolderId, kind)
 }
 
 export interface UploadedFile {

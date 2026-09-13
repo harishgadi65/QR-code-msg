@@ -4,7 +4,7 @@ import { config } from '../config'
 import { memoryFieldsSchema } from '../utils/validation'
 import { MediaValidationError } from '../utils/media'
 import { mintUploadAccessToken } from '../googleDrive/driveClient'
-import { deleteFile, ensureQrFolder } from '../googleDrive/driveService'
+import { deleteFile, ensureQrFolder, ensureQrRootFolder } from '../googleDrive/driveService'
 import { computeMediaType, qrRef, now, resolvePublicQrId, validateAndPublishDriveUpload } from '../services/memoryService'
 import { requireSignedIn, type AuthedRequest } from '../middleware/auth'
 import type { QrDoc } from '../types/qr'
@@ -160,11 +160,15 @@ router.post('/:token/upload-init', maybeRequireSignedIn, async (req, res) => {
 
   try {
     const needsDrive = wantsPhoto || wantsVideo || wantsAudio
+    // Resolved once and reused below — see ensureQrRootFolder's comment for why finding
+    // this concurrently per media kind (the previous code's Promise.all) is a race that
+    // can silently split one QR's photo/video/audio across different duplicate folders.
+    const qrFolderId = needsDrive ? await ensureQrRootFolder(qrId) : undefined
     const [accessToken, photoFolderId, videoFolderId, audioFolderId] = await Promise.all([
       needsDrive ? mintUploadAccessToken() : Promise.resolve(undefined),
-      wantsPhoto ? ensureQrFolder(qrId, 'photo') : Promise.resolve(undefined),
-      wantsVideo ? ensureQrFolder(qrId, 'video') : Promise.resolve(undefined),
-      wantsAudio ? ensureQrFolder(qrId, 'audio') : Promise.resolve(undefined),
+      wantsPhoto ? ensureQrFolder(qrId, 'photo', qrFolderId) : Promise.resolve(undefined),
+      wantsVideo ? ensureQrFolder(qrId, 'video', qrFolderId) : Promise.resolve(undefined),
+      wantsAudio ? ensureQrFolder(qrId, 'audio', qrFolderId) : Promise.resolve(undefined),
     ])
     res.json({ accessToken, photoFolderId, videoFolderId, audioFolderId })
   } catch {
