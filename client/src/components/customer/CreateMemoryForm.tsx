@@ -10,9 +10,11 @@ const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_PHOTO_MB = 15
 const MAX_VIDEO_MB = 80
-// Must match the server's config.limits.maxMemoryExpiryDays default (functions/src/config.ts) —
-// the server re-validates this independently, so a mismatch just means a confusing error, not a security gap.
+// Must match the server's config.limits.maxMemoryExpiryDays/maxMemoryScanLimit defaults
+// (functions/src/config.ts) — the server re-validates these independently, so a mismatch
+// just means a confusing error, not a security gap.
 const MAX_EXPIRY_DAYS = 10
+const MAX_SCANS = 7
 
 type Step = 'form' | 'preview' | 'uploading' | 'success'
 
@@ -352,15 +354,18 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           </label>
           {expiryEnabled && (
             <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                max={MAX_EXPIRY_DAYS}
+              <select
                 value={expiryDays}
-                onChange={(e) => setExpiryDays(Math.min(MAX_EXPIRY_DAYS, Math.max(1, Number(e.target.value) || 1)))}
-                className="vintage-input w-20 px-3 py-2 text-center"
-              />
-              <span className="text-xs text-[#8a7a6a]">days (max {MAX_EXPIRY_DAYS}) — the QR stops working after this</span>
+                onChange={(e) => setExpiryDays(Number(e.target.value))}
+                className="vintage-input px-3 py-2"
+              >
+                {Array.from({ length: MAX_EXPIRY_DAYS }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>
+                    {d} day{d === 1 ? '' : 's'}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-[#8a7a6a]">the QR stops working after this</span>
             </div>
           )}
 
@@ -375,14 +380,18 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           </label>
           {scanLimitEnabled && (
             <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
+              <select
                 value={maxScans}
-                onChange={(e) => setMaxScans(Math.max(1, Number(e.target.value) || 1))}
-                className="vintage-input w-20 px-3 py-2 text-center"
-              />
-              <span className="text-xs text-[#8a7a6a]">views — the QR stops working after this many people view it</span>
+                onChange={(e) => setMaxScans(Number(e.target.value))}
+                className="vintage-input px-3 py-2"
+              >
+                {Array.from({ length: MAX_SCANS }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} view{n === 1 ? '' : 's'}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-[#8a7a6a]">the QR stops working after this many people view it</span>
             </div>
           )}
         </div>
