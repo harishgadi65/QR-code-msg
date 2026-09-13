@@ -30,6 +30,12 @@ export interface QrDoc {
   scanCount: number
   lastScannedAt: number | null
 
+  // Optional privacy controls the uploader could set when saving the memory —
+  // null means no restriction. expiresAt is an epoch-ms cutoff; maxScans compares
+  // against scanCount.
+  expiresAt: number | null
+  maxScans: number | null
+
   createdAt: number
   updatedAt: number
 }

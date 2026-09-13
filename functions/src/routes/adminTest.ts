@@ -28,6 +28,8 @@ router.post('/ensure', async (_req, res) => {
       audioDriveId: null,
       scanCount: 0,
       lastScannedAt: null,
+      expiresAt: null,
+      maxScans: null,
       pendingSince: null,
       createdAt: nowMs,
       updatedAt: nowMs,

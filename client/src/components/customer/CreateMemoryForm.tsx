@@ -10,6 +10,9 @@ const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_PHOTO_MB = 15
 const MAX_VIDEO_MB = 80
+// Must match the server's config.limits.maxMemoryExpiryDays default (functions/src/config.ts) —
+// the server re-validates this independently, so a mismatch just means a confusing error, not a security gap.
+const MAX_EXPIRY_DAYS = 10
 
 type Step = 'form' | 'preview' | 'uploading' | 'success'
 
@@ -23,6 +26,10 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   const [fromName, setFromName] = useState('')
   const [toName, setToName] = useState('')
   const [message, setMessage] = useState('')
+  const [expiryEnabled, setExpiryEnabled] = useState(false)
+  const [expiryDays, setExpiryDays] = useState(7)
+  const [scanLimitEnabled, setScanLimitEnabled] = useState(false)
+  const [maxScans, setMaxScans] = useState(3)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
@@ -128,6 +135,8 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         fromName: fromName.trim() || undefined,
         toName: toName.trim() || undefined,
         message: message.trim() || undefined,
+        expiresInDays: expiryEnabled ? expiryDays : undefined,
+        maxScans: scanLimitEnabled ? maxScans : undefined,
       })
 
       setStep('success')
@@ -187,6 +196,18 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           {message && <p className="vintage-body mt-4 whitespace-pre-wrap leading-relaxed">{message}</p>}
           {fromName && <p className="vintage-label mt-4 text-xs uppercase">From</p>}
           {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
+
+          {(expiryEnabled || scanLimitEnabled) && (
+            <p className="vintage-label mt-4 text-xs text-[#7a2e2e]">
+              🔒{' '}
+              {[
+                expiryEnabled && `Expires in ${expiryDays} day${expiryDays === 1 ? '' : 's'}`,
+                scanLimitEnabled && `Limited to ${maxScans} view${maxScans === 1 ? '' : 's'}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
 
           {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
 
@@ -315,6 +336,55 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
             />
             <p className="vintage-label mt-1 text-right text-[10px]">{message.length}/{MAX_MESSAGE_LENGTH}</p>
           </div>
+        </div>
+
+        <div className="mt-5 w-full space-y-3 rounded-2xl border border-[#e3c691] bg-[#fffaf0] p-4">
+          <p className="vintage-label text-xs uppercase">🔒 Privacy (optional)</p>
+
+          <label className="flex items-center justify-between gap-3">
+            <span className="text-sm text-[#6b5b3d]">Auto-expire after some days</span>
+            <input
+              type="checkbox"
+              checked={expiryEnabled}
+              onChange={(e) => setExpiryEnabled(e.target.checked)}
+              className="h-5 w-5 accent-[#9c1f3a]"
+            />
+          </label>
+          {expiryEnabled && (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={MAX_EXPIRY_DAYS}
+                value={expiryDays}
+                onChange={(e) => setExpiryDays(Math.min(MAX_EXPIRY_DAYS, Math.max(1, Number(e.target.value) || 1)))}
+                className="vintage-input w-20 px-3 py-2 text-center"
+              />
+              <span className="text-xs text-[#8a7a6a]">days (max {MAX_EXPIRY_DAYS}) — the QR stops working after this</span>
+            </div>
+          )}
+
+          <label className="flex items-center justify-between gap-3">
+            <span className="text-sm text-[#6b5b3d]">Limit number of views</span>
+            <input
+              type="checkbox"
+              checked={scanLimitEnabled}
+              onChange={(e) => setScanLimitEnabled(e.target.checked)}
+              className="h-5 w-5 accent-[#9c1f3a]"
+            />
+          </label>
+          {scanLimitEnabled && (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={maxScans}
+                onChange={(e) => setMaxScans(Math.max(1, Number(e.target.value) || 1))}
+                className="vintage-input w-20 px-3 py-2 text-center"
+              />
+              <span className="text-xs text-[#8a7a6a]">views — the QR stops working after this many people view it</span>
+            </div>
+          )}
         </div>
 
         {error && <p className="mt-3 text-sm text-red-700">{error}</p>}

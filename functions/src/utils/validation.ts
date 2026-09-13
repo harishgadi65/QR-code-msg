@@ -13,6 +13,10 @@ export const memoryFieldsSchema = z.object({
   fromName: z.string().trim().max(config.limits.maxNameLength).optional().or(z.literal('')),
   toName: z.string().trim().max(config.limits.maxNameLength).optional().or(z.literal('')),
   message: z.string().trim().max(config.limits.maxMessageLength).optional().or(z.literal('')),
+  // Optional privacy controls: the uploader can make the memory auto-expire after N
+  // days and/or stop being viewable after N views. Both unset means no restriction.
+  expiresInDays: z.number().int().min(1).max(config.limits.maxMemoryExpiryDays).optional(),
+  maxScans: z.number().int().min(1).max(config.limits.maxMemoryScanLimit).optional(),
 })
 
 export const generateQrSchema = z.object({

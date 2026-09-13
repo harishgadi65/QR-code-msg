@@ -33,6 +33,13 @@ export interface QrDoc {
   scanCount: number
   lastScannedAt: number | null
 
+  // Optional privacy controls the uploader can set when saving the memory (see
+  // routes/customerQr.ts's finalize and GET /:token). Either or both left null
+  // means no restriction. expiresAt is an epoch-ms cutoff; maxScans compares
+  // against scanCount.
+  expiresAt: number | null
+  maxScans: number | null
+
   pendingSince: number | null
 
   createdAt: number

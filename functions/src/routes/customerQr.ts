@@ -47,6 +47,17 @@ router.get('/:token', async (req, res) => {
         data.status = 'empty'
       }
 
+      // Privacy controls the uploader chose at save time (see finalize below) —
+      // checked against the view that's about to happen, before it's counted.
+      if (data.status === 'content_added') {
+        if (data.expiresAt != null && nowMs > data.expiresAt) {
+          return { status: 'expired' as const }
+        }
+        if (data.maxScans != null && (data.scanCount ?? 0) >= data.maxScans) {
+          return { status: 'scan_limit_reached' as const }
+        }
+      }
+
       if (data.status !== 'disabled') {
         tx.update(qrRef(qrId), { scanCount: (data.scanCount ?? 0) + 1, lastScannedAt: nowMs })
       }
@@ -64,6 +75,14 @@ router.get('/:token', async (req, res) => {
     }
     if (result.status === 'archived') {
       res.json({ status: 'archived' })
+      return
+    }
+    if (result.status === 'expired') {
+      res.json({ status: 'expired' })
+      return
+    }
+    if (result.status === 'scan_limit_reached') {
+      res.json({ status: 'scan_limit_reached' })
       return
     }
     if (result.status === 'pending_upload') {
@@ -186,6 +205,8 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
   const fromName = fields.data.fromName?.trim() || null
   const toName = fields.data.toName?.trim() || null
   const message = fields.data.message?.trim() || null
+  const expiresAt = fields.data.expiresInDays ? now() + fields.data.expiresInDays * 24 * 60 * 60 * 1000 : null
+  const maxScans = fields.data.maxScans ?? null
 
   if (!photoDriveId && !videoDriveId && !audioDriveId && !message) {
     friendlyError(res, 400, 'Please add a photo, video, voice message, or message before saving.', 'EMPTY_MEMORY')
@@ -223,6 +244,8 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
       videoDriveId: videoDriveId ?? null,
       audioUrl,
       audioDriveId: audioDriveId ?? null,
+      expiresAt,
+      maxScans,
       uploaderEmail: req.email ?? null,
       uploaderName: req.name ?? null,
       mediaType: computeMediaType({ photoUrl, videoUrl }),

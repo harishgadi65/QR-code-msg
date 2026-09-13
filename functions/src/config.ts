@@ -23,6 +23,11 @@ export const config = {
     // routes/customerQr.ts's upload-init/finalize split) without the QR getting
     // reclaimed as abandoned while a legitimate upload is still in flight.
     pendingUploadTimeoutMs: Number(process.env.PENDING_UPLOAD_TIMEOUT_MS ?? 8 * 60 * 1000),
+    // Optional privacy controls the uploader can set at save time (see
+    // routes/customerQr.ts's finalize) — how far out an auto-expiry can be set,
+    // and the highest view limit they're allowed to pick.
+    maxMemoryExpiryDays: Number(process.env.MAX_MEMORY_EXPIRY_DAYS ?? 10),
+    maxMemoryScanLimit: Number(process.env.MAX_MEMORY_SCAN_LIMIT ?? 1000),
   },
   appBaseUrl: () => process.env.APP_BASE_URL ?? '',
   // Off by default: flips on once Google sign-in is enabled in the Firebase console

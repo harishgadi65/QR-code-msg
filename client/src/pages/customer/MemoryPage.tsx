@@ -21,6 +21,8 @@ type QrStatusResponse =
     }
   | { status: 'disabled' }
   | { status: 'archived' }
+  | { status: 'expired' }
+  | { status: 'scan_limit_reached' }
   | { status: 'pending_upload' }
   | { status: 'not_found' }
 
@@ -117,6 +119,22 @@ export function MemoryPage() {
           emoji="💐"
           title="Memory No Longer Available"
           subtitle="This memorable message is no longer available."
+        />
+      )
+    case 'expired':
+      return (
+        <CenteredMessage
+          emoji="💐"
+          title="This Memory Has Expired"
+          subtitle="The sender set this memory to be available for a limited time, and that time has passed."
+        />
+      )
+    case 'scan_limit_reached':
+      return (
+        <CenteredMessage
+          emoji="💐"
+          title="View Limit Reached"
+          subtitle="The sender limited how many times this memory could be viewed, and that limit has been reached."
         />
       )
     case 'pending_upload':
