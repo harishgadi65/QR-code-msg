@@ -30,6 +30,7 @@ router.post('/ensure', async (_req, res) => {
       lastScannedAt: null,
       expiresAt: null,
       maxScans: null,
+      viewCount: 0,
       pendingSince: null,
       createdAt: nowMs,
       updatedAt: nowMs,

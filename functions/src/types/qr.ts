@@ -30,15 +30,22 @@ export interface QrDoc {
   uploaderEmail?: string | null
   uploaderName?: string | null
 
+  // Lifetime count of every page load this QR has ever gotten, in any status —
+  // includes the uploader's own visits before content even existed. Used only for
+  // admin analytics; NOT what maxScans compares against (see viewCount below).
   scanCount: number
   lastScannedAt: number | null
 
   // Optional privacy controls the uploader can set when saving the memory (see
   // routes/customerQr.ts's finalize and GET /:token). Either or both left null
-  // means no restriction. expiresAt is an epoch-ms cutoff; maxScans compares
-  // against scanCount.
+  // means no restriction. expiresAt is an epoch-ms cutoff.
   expiresAt: number | null
   maxScans: number | null
+  // Views of the SAVED memory only, reset to 0 every time finalize saves new content —
+  // deliberately separate from scanCount (which also counts the uploader's own pre-save
+  // visits) so maxScans compares against actual views of the memory, not the QR's whole
+  // history. May be undefined on memories saved before this field existed; treat as 0.
+  viewCount: number
 
   pendingSince: number | null
 

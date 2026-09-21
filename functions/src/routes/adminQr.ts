@@ -57,6 +57,7 @@ router.post('/generate', async (req: AuthedRequest, res) => {
           lastScannedAt: null,
           expiresAt: null,
           maxScans: null,
+          viewCount: 0,
           pendingSince: null,
           createdAt: nowMs,
           updatedAt: nowMs,

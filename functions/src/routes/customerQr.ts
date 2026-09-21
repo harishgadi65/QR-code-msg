@@ -48,18 +48,24 @@ router.get('/:token', async (req, res) => {
       }
 
       // Privacy controls the uploader chose at save time (see finalize below) —
-      // checked against the view that's about to happen, before it's counted.
+      // checked against the view that's about to happen, before it's counted. Uses
+      // viewCount (views of THIS saved memory, reset at finalize), not scanCount
+      // (the QR's lifetime total including the uploader's own pre-save visits) —
+      // otherwise a limit set to e.g. 5 could already be half-consumed by the time
+      // the uploader finishes checking on the QR and actually saves it.
       if (data.status === 'content_added') {
         if (data.expiresAt != null && nowMs > data.expiresAt) {
           return { status: 'expired' as const }
         }
-        if (data.maxScans != null && (data.scanCount ?? 0) >= data.maxScans) {
+        if (data.maxScans != null && (data.viewCount ?? 0) >= data.maxScans) {
           return { status: 'scan_limit_reached' as const }
         }
       }
 
       if (data.status !== 'disabled') {
-        tx.update(qrRef(qrId), { scanCount: (data.scanCount ?? 0) + 1, lastScannedAt: nowMs })
+        const update: Record<string, unknown> = { scanCount: (data.scanCount ?? 0) + 1, lastScannedAt: nowMs }
+        if (data.status === 'content_added') update.viewCount = (data.viewCount ?? 0) + 1
+        tx.update(qrRef(qrId), update)
       }
 
       return { status: data.status, data }
@@ -250,6 +256,7 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
       audioDriveId: audioDriveId ?? null,
       expiresAt,
       maxScans,
+      viewCount: 0,
       uploaderEmail: req.email ?? null,
       uploaderName: req.name ?? null,
       mediaType: computeMediaType({ photoUrl, videoUrl }),

@@ -27,14 +27,17 @@ export interface QrDoc {
   uploaderEmail?: string | null
   uploaderName?: string | null
 
+  // Lifetime page-load count in any status — includes the uploader's own pre-save
+  // visits, so this is NOT what maxScans is checked against (see viewCount below).
   scanCount: number
   lastScannedAt: number | null
 
   // Optional privacy controls the uploader could set when saving the memory —
-  // null means no restriction. expiresAt is an epoch-ms cutoff; maxScans compares
-  // against scanCount.
+  // null means no restriction. expiresAt is an epoch-ms cutoff.
   expiresAt: number | null
   maxScans: number | null
+  // Views of the saved memory only, reset to 0 each time new content is saved.
+  viewCount: number
 
   createdAt: number
   updatedAt: number
