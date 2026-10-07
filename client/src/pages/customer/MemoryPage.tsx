@@ -4,25 +4,16 @@ import { apiGet } from '../../services/api'
 import { useAuth } from '../../hooks/useAuth'
 import { CreateMemoryForm } from '../../components/customer/CreateMemoryForm'
 import { MemoryView } from '../../components/customer/MemoryView'
+import { PinGate, type MemoryContent } from '../../components/customer/PinGate'
 
 type QrStatusResponse =
   | { status: 'empty' }
-  | {
-      status: 'content_added'
-      fromName: string | null
-      toName: string | null
-      message: string | null
-      photoUrl: string | null
-      photoDriveId: string | null
-      videoUrl: string | null
-      videoDriveId: string | null
-      audioUrl: string | null
-      audioDriveId: string | null
-    }
+  | MemoryContent
   | { status: 'disabled' }
   | { status: 'archived' }
   | { status: 'expired' }
   | { status: 'scan_limit_reached' }
+  | { status: 'pin_required' }
   | { status: 'pending_upload' }
   | { status: 'not_found' }
 
@@ -137,6 +128,8 @@ export function MemoryPage() {
           subtitle="The sender limited how many times this memory could be viewed, and that limit has been reached."
         />
       )
+    case 'pin_required':
+      return <PinGate qrId={qrId} onUnlocked={setData} />
     case 'pending_upload':
       return <CenteredMessage emoji="⏳" title="Saving in progress" subtitle="Someone is currently saving a memory to this QR. Please check back shortly." />
     case 'content_added':

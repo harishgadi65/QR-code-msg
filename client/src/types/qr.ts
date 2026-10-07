@@ -39,6 +39,12 @@ export interface QrDoc {
   // Views of the saved memory only, reset to 0 each time new content is saved.
   viewCount: number
 
+  // Optional PIN gate — set when the uploader protected the memory with a 4-digit PIN.
+  pinHash: string | null
+  pinSalt: string | null
+  pinFailedAttempts: number
+  pinLockedUntil: number | null
+
   createdAt: number
   updatedAt: number
 }

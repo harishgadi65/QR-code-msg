@@ -29,6 +29,11 @@ export const config = {
     maxMemoryExpiryDays: Number(process.env.MAX_MEMORY_EXPIRY_DAYS ?? 10),
     minMemoryScanLimit: Number(process.env.MIN_MEMORY_SCAN_LIMIT ?? 5),
     maxMemoryScanLimit: Number(process.env.MAX_MEMORY_SCAN_LIMIT ?? 10),
+    // PIN-gate throttling (see services/pinAuth.ts and routes/customerQr.ts's
+    // verify-pin) — a 4-digit PIN only has 10,000 combinations, so without a lockout
+    // it could just be guessed by brute force.
+    maxPinAttempts: Number(process.env.MAX_PIN_ATTEMPTS ?? 5),
+    pinLockoutMs: Number(process.env.PIN_LOCKOUT_MS ?? 15 * 60 * 1000),
   },
   appBaseUrl: () => process.env.APP_BASE_URL ?? '',
   // Off by default: flips on once Google sign-in is enabled in the Firebase console

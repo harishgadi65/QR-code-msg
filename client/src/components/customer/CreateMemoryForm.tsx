@@ -10,12 +10,10 @@ const MAX_VIDEO_SECONDS = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_PHOTO_MB = 15
 const MAX_VIDEO_MB = 80
-// Must match the server's config.limits.maxMemoryExpiryDays/minMemoryScanLimit/
-// maxMemoryScanLimit defaults (functions/src/config.ts) — the server re-validates these
-// independently, so a mismatch just means a confusing error, not a security gap.
+// Must match the server's config.limits.maxMemoryExpiryDays default
+// (functions/src/config.ts) — the server re-validates this independently, so a
+// mismatch just means a confusing error, not a security gap.
 const MAX_EXPIRY_DAYS = 10
-const MIN_SCANS = 5
-const MAX_SCANS = 10
 
 type Step = 'form' | 'preview' | 'uploading' | 'success'
 
@@ -31,8 +29,8 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
   const [message, setMessage] = useState('')
   const [expiryEnabled, setExpiryEnabled] = useState(false)
   const [expiryDays, setExpiryDays] = useState(7)
-  const [scanLimitEnabled, setScanLimitEnabled] = useState(false)
-  const [maxScans, setMaxScans] = useState(MIN_SCANS)
+  const [pinEnabled, setPinEnabled] = useState(false)
+  const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
@@ -87,6 +85,10 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
       setError('Please add a photo, video, voice message, or message before saving.')
       return
     }
+    if (pinEnabled && pin.length !== 4) {
+      setError('Please enter a 4-digit PIN, or turn off the PIN option.')
+      return
+    }
     setError(null)
     setStep('preview')
   }
@@ -139,7 +141,7 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         toName: toName.trim() || undefined,
         message: message.trim() || undefined,
         expiresInDays: expiryEnabled ? expiryDays : undefined,
-        maxScans: scanLimitEnabled ? maxScans : undefined,
+        pin: pinEnabled ? pin : undefined,
       })
 
       setStep('success')
@@ -200,13 +202,10 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           {fromName && <p className="vintage-label mt-4 text-xs uppercase">From</p>}
           {fromName && <p className="vintage-body mt-1 text-lg font-medium">{fromName}</p>}
 
-          {(expiryEnabled || scanLimitEnabled) && (
+          {(expiryEnabled || pinEnabled) && (
             <p className="vintage-label mt-4 text-xs text-[#7a2e2e]">
               🔒{' '}
-              {[
-                expiryEnabled && `Expires in ${expiryDays} day${expiryDays === 1 ? '' : 's'}`,
-                scanLimitEnabled && `Limited to ${maxScans} view${maxScans === 1 ? '' : 's'}`,
-              ]
+              {[expiryEnabled && `Expires in ${expiryDays} day${expiryDays === 1 ? '' : 's'}`, pinEnabled && 'Protected by PIN']
                 .filter(Boolean)
                 .join(' · ')}
             </p>
@@ -371,28 +370,30 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
           )}
 
           <label className="flex items-center justify-between gap-3">
-            <span className="text-sm text-[#6b5b3d]">Limit number of views</span>
+            <span className="text-sm text-[#6b5b3d]">Protect with a PIN</span>
             <input
               type="checkbox"
-              checked={scanLimitEnabled}
-              onChange={(e) => setScanLimitEnabled(e.target.checked)}
+              checked={pinEnabled}
+              onChange={(e) => {
+                setPinEnabled(e.target.checked)
+                if (!e.target.checked) setPin('')
+              }}
               className="h-5 w-5 accent-[#9c1f3a]"
             />
           </label>
-          {scanLimitEnabled && (
+          {pinEnabled && (
             <div className="flex items-center gap-2">
-              <select
-                value={maxScans}
-                onChange={(e) => setMaxScans(Number(e.target.value))}
-                className="vintage-input px-3 py-2"
-              >
-                {Array.from({ length: MAX_SCANS - MIN_SCANS + 1 }, (_, i) => i + MIN_SCANS).map((n) => (
-                  <option key={n} value={n}>
-                    {n} view{n === 1 ? '' : 's'}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-[#8a7a6a]">the QR stops working after this many people view it</span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="••••"
+                className="vintage-input w-24 px-3 py-2 text-center text-lg tracking-[0.3em]"
+              />
+              <span className="text-xs text-[#8a7a6a]">a 4-digit PIN the viewer must enter to see this memory</span>
             </div>
           )}
         </div>

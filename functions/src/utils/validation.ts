@@ -9,6 +9,8 @@ export const qrIdSchema = z
 // hex-encoded. Used to tell a public token apart from a legacy QR-NNNNNN id.
 export const publicTokenSchema = z.string().regex(/^[0-9a-f]{32}$/, 'Invalid token format')
 
+export const pinSchema = z.string().regex(/^\d{4}$/, 'PIN must be 4 digits')
+
 export const memoryFieldsSchema = z.object({
   fromName: z.string().trim().max(config.limits.maxNameLength).optional().or(z.literal('')),
   toName: z.string().trim().max(config.limits.maxNameLength).optional().or(z.literal('')),
@@ -17,6 +19,8 @@ export const memoryFieldsSchema = z.object({
   // days and/or stop being viewable after N views. Both unset means no restriction.
   expiresInDays: z.number().int().min(1).max(config.limits.maxMemoryExpiryDays).optional(),
   maxScans: z.number().int().min(config.limits.minMemoryScanLimit).max(config.limits.maxMemoryScanLimit).optional(),
+  // Optional 4-digit PIN gate — see services/pinAuth.ts.
+  pin: pinSchema.optional(),
 })
 
 export const generateQrSchema = z.object({

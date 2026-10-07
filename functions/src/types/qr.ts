@@ -47,6 +47,16 @@ export interface QrDoc {
   // history. May be undefined on memories saved before this field existed; treat as 0.
   viewCount: number
 
+  // Optional PIN gate (see services/pinAuth.ts) — if pinHash is set, GET /:token
+  // returns 'pin_required' instead of the memory's content until POST /:token/verify-pin
+  // is called with the correct PIN. Never stores the PIN itself, only a salted hash.
+  // pinFailedAttempts/pinLockedUntil throttle guessing (a 4-digit PIN only has 10,000
+  // combinations).
+  pinHash: string | null
+  pinSalt: string | null
+  pinFailedAttempts: number
+  pinLockedUntil: number | null
+
   pendingSince: number | null
 
   createdAt: number
