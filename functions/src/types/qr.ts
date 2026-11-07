@@ -16,14 +16,23 @@ export interface QrDoc {
   toName: string | null
   message: string | null
 
+  // photoUrl/videoUrl/audioUrl are always a direct, playable URL regardless of
+  // backend. photoDriveId/videoDriveId/audioDriveId are set only for memories saved
+  // before the move to Firebase Storage — legacy content keeps living in Drive
+  // (see services/storageService.ts), and those ids are what MemoryView/media.ts
+  // use to proxy-stream it. New saves instead populate photoStoragePath etc., and
+  // leave the matching *DriveId null.
   photoUrl: string | null
   photoDriveId: string | null
+  photoStoragePath: string | null
 
   videoUrl: string | null
   videoDriveId: string | null
+  videoStoragePath: string | null
 
   audioUrl: string | null
   audioDriveId: string | null
+  audioStoragePath: string | null
 
   // Whoever was signed in with Google when they saved the memory — an audit trail,
   // not an access restriction (anyone with a Google account can still upload).

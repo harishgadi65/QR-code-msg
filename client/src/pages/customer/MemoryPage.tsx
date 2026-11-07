@@ -141,8 +141,10 @@ export function MemoryPage() {
           photoUrl={data.photoUrl}
           videoUrl={data.videoUrl}
           videoDriveId={data.videoDriveId}
+          videoDownloadUrl={data.videoDownloadUrl}
           audioUrl={data.audioUrl}
           audioDriveId={data.audioDriveId}
+          audioDownloadUrl={data.audioDownloadUrl}
         />
       )
     case 'empty':

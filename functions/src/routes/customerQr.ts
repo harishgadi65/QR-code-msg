@@ -3,9 +3,8 @@ import { db } from '../services/firebaseAdmin'
 import { config } from '../config'
 import { memoryFieldsSchema } from '../utils/validation'
 import { MediaValidationError } from '../utils/media'
-import { mintUploadAccessToken } from '../googleDrive/driveClient'
-import { deleteFile, ensureQrFolder, ensureQrRootFolder } from '../googleDrive/driveService'
-import { computeMediaType, qrRef, now, resolvePublicQrId, validateAndPublishDriveUpload } from '../services/memoryService'
+import { mintUploadUrl, signedDownloadUrl, storagePathFor, ensureBucketCors, deleteFile as deleteStorageFile } from '../services/storageService'
+import { computeMediaType, qrRef, now, resolvePublicQrId, validateAndPublishStorageUpload } from '../services/memoryService'
 import { generatePinSalt, hashPin, verifyPinHash } from '../services/pinAuth'
 import { pinSchema } from '../utils/validation'
 import { requireSignedIn, type AuthedRequest } from '../middleware/auth'
@@ -26,7 +25,14 @@ function friendlyError(res: import('express').Response, status: number, message:
   res.status(status).json({ error: message, code })
 }
 
-function memoryContentPayload(d: QrDoc) {
+// videoDownloadUrl/audioDownloadUrl are only populated for Storage-backed content
+// (videoStoragePath/audioStoragePath set) — legacy Drive-backed memories keep using
+// the driveId-based proxy download the client already has (see MemoryView.tsx).
+async function memoryContentPayload(d: QrDoc) {
+  const [videoDownloadUrl, audioDownloadUrl] = await Promise.all([
+    d.videoStoragePath ? signedDownloadUrl(d.videoStoragePath, 'memory-video.mp4') : Promise.resolve(null),
+    d.audioStoragePath ? signedDownloadUrl(d.audioStoragePath, 'voice-message.wav') : Promise.resolve(null),
+  ])
   return {
     status: 'content_added' as const,
     fromName: d.fromName,
@@ -36,8 +42,10 @@ function memoryContentPayload(d: QrDoc) {
     photoDriveId: d.photoDriveId,
     videoUrl: d.videoUrl,
     videoDriveId: d.videoDriveId,
+    videoDownloadUrl,
     audioUrl: d.audioUrl,
     audioDriveId: d.audioDriveId,
+    audioDownloadUrl,
   }
 }
 
@@ -122,7 +130,7 @@ router.get('/:token', async (req, res) => {
       return
     }
     if (result.status === 'content_added') {
-      res.json(memoryContentPayload(result.data!))
+      res.json(await memoryContentPayload(result.data!))
       return
     }
     res.json({ status: 'empty', isTest: result.data?.isTest ?? false })
@@ -205,7 +213,7 @@ router.post('/:token/verify-pin', async (req, res) => {
       friendlyError(res, 401, 'Incorrect PIN. Please try again.', 'WRONG_PIN')
       return
     }
-    res.json(memoryContentPayload(result.data!))
+    res.json(await memoryContentPayload(result.data!))
   } catch (err) {
     console.error('verify-pin failed', err)
     friendlyError(res, 500, 'Something went wrong. Please try again.', 'INTERNAL')
@@ -239,9 +247,10 @@ async function claimQr(qrId: string) {
   })
 }
 
-// Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived
-// Drive access token plus the exact folder(s) the browser is allowed to upload into —
-// the browser then uploads the file bytes straight to Google, never through this server.
+// Step 1: claim the QR (same concurrency-safety as before) and hand back a short-lived,
+// per-file signed URL the browser can PUT bytes straight to in Firebase Storage —
+// the file never passes through this server (same reason Drive worked this way:
+// serverless hosts cap request body size well below a real photo/video/voice file).
 router.post('/:token/upload-init', maybeRequireSignedIn, async (req, res) => {
   const qrId = await resolvePublicQrId(req.params.token)
   if (!qrId) {
@@ -259,27 +268,27 @@ router.post('/:token/upload-init', maybeRequireSignedIn, async (req, res) => {
   }
 
   try {
-    const needsDrive = wantsPhoto || wantsVideo || wantsAudio
-    // Resolved once and reused below — see ensureQrRootFolder's comment for why finding
-    // this concurrently per media kind (the previous code's Promise.all) is a race that
-    // can silently split one QR's photo/video/audio across different duplicate folders.
-    const qrFolderId = needsDrive ? await ensureQrRootFolder(qrId) : undefined
-    const [accessToken, photoFolderId, videoFolderId, audioFolderId] = await Promise.all([
-      needsDrive ? mintUploadAccessToken() : Promise.resolve(undefined),
-      wantsPhoto ? ensureQrFolder(qrId, 'photo', qrFolderId) : Promise.resolve(undefined),
-      wantsVideo ? ensureQrFolder(qrId, 'video', qrFolderId) : Promise.resolve(undefined),
-      wantsAudio ? ensureQrFolder(qrId, 'audio', qrFolderId) : Promise.resolve(undefined),
+    await ensureBucketCors()
+    const photoPath = wantsPhoto ? storagePathFor(qrId, 'photo') : undefined
+    const videoPath = wantsVideo ? storagePathFor(qrId, 'video') : undefined
+    const audioPath = wantsAudio ? storagePathFor(qrId, 'audio') : undefined
+    const [photoUploadUrl, videoUploadUrl, audioUploadUrl] = await Promise.all([
+      photoPath ? mintUploadUrl(photoPath) : Promise.resolve(undefined),
+      videoPath ? mintUploadUrl(videoPath) : Promise.resolve(undefined),
+      audioPath ? mintUploadUrl(audioPath) : Promise.resolve(undefined),
     ])
-    res.json({ accessToken, photoFolderId, videoFolderId, audioFolderId })
-  } catch {
+    res.json({ photoPath, photoUploadUrl, videoPath, videoUploadUrl, audioPath, audioUploadUrl })
+  } catch (err) {
+    console.error('upload-init failed', err)
     await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
     friendlyError(res, 502, 'Something went wrong while preparing your upload. Please try again.', 'UPLOAD_INIT_FAILED')
   }
 })
 
-// Step 2: the browser has already uploaded bytes straight to Drive by this point — this
-// re-validates what actually landed there (mirrors the checks a bypassed browser UI
-// could otherwise skip), sets sharing permissions, and finalizes the Firestore record.
+// Step 2: the browser has already uploaded bytes straight to Firebase Storage by this
+// point — this re-validates what actually landed there (mirrors the checks a bypassed
+// browser UI could otherwise skip), publishes a public link, and finalizes the Firestore
+// record.
 router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest, res) => {
   const qrId = await resolvePublicQrId(req.params.token)
   if (!qrId) {
@@ -303,9 +312,9 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
     return
   }
 
-  const photoDriveId = typeof req.body?.photoDriveId === 'string' ? req.body.photoDriveId : undefined
-  const videoDriveId = typeof req.body?.videoDriveId === 'string' ? req.body.videoDriveId : undefined
-  const audioDriveId = typeof req.body?.audioDriveId === 'string' ? req.body.audioDriveId : undefined
+  const photoPath = typeof req.body?.photoPath === 'string' ? req.body.photoPath : undefined
+  const videoPath = typeof req.body?.videoPath === 'string' ? req.body.videoPath : undefined
+  const audioPath = typeof req.body?.audioPath === 'string' ? req.body.audioPath : undefined
   const fromName = fields.data.fromName?.trim() || null
   const toName = fields.data.toName?.trim() || null
   const message = fields.data.message?.trim() || null
@@ -314,28 +323,28 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
   const pinSalt = fields.data.pin ? generatePinSalt() : null
   const pinHash = fields.data.pin && pinSalt ? hashPin(fields.data.pin, pinSalt) : null
 
-  if (!photoDriveId && !videoDriveId && !audioDriveId && !message) {
+  if (!photoPath && !videoPath && !audioPath && !message) {
     friendlyError(res, 400, 'Please add a photo, video, voice message, or message before saving.', 'EMPTY_MEMORY')
     return
   }
 
-  const uploadedFileIds: string[] = []
+  const uploadedPaths: string[] = []
   try {
     let photoUrl: string | null = null
     let videoUrl: string | null = null
     let audioUrl: string | null = null
 
-    if (photoDriveId) {
-      ;({ url: photoUrl } = await validateAndPublishDriveUpload(qrId, 'photo', photoDriveId))
-      uploadedFileIds.push(photoDriveId)
+    if (photoPath) {
+      ;({ url: photoUrl } = await validateAndPublishStorageUpload(qrId, 'photo', photoPath))
+      uploadedPaths.push(photoPath)
     }
-    if (videoDriveId) {
-      ;({ url: videoUrl } = await validateAndPublishDriveUpload(qrId, 'video', videoDriveId))
-      uploadedFileIds.push(videoDriveId)
+    if (videoPath) {
+      ;({ url: videoUrl } = await validateAndPublishStorageUpload(qrId, 'video', videoPath))
+      uploadedPaths.push(videoPath)
     }
-    if (audioDriveId) {
-      ;({ url: audioUrl } = await validateAndPublishDriveUpload(qrId, 'audio', audioDriveId))
-      uploadedFileIds.push(audioDriveId)
+    if (audioPath) {
+      ;({ url: audioUrl } = await validateAndPublishStorageUpload(qrId, 'audio', audioPath))
+      uploadedPaths.push(audioPath)
     }
 
     await qrRef(qrId).update({
@@ -345,11 +354,14 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
       toName,
       message,
       photoUrl,
-      photoDriveId: photoDriveId ?? null,
+      photoDriveId: null,
+      photoStoragePath: photoPath ?? null,
       videoUrl,
-      videoDriveId: videoDriveId ?? null,
+      videoDriveId: null,
+      videoStoragePath: videoPath ?? null,
       audioUrl,
-      audioDriveId: audioDriveId ?? null,
+      audioDriveId: null,
+      audioStoragePath: audioPath ?? null,
       expiresAt,
       maxScans,
       viewCount: 0,
@@ -368,7 +380,7 @@ router.post('/:token/finalize', maybeRequireSignedIn, async (req: AuthedRequest,
     console.error('finalize failed', err)
     // Clean up whatever was uploaded and release the claim so the QR stays usable.
     await Promise.all(
-      uploadedFileIds.map((id) => deleteFile(id).catch((e) => console.error(`Failed to delete Drive file ${id}`, e))),
+      uploadedPaths.map((path) => deleteStorageFile(path).catch((e) => console.error(`Failed to delete storage file ${path}`, e))),
     )
     await qrRef(qrId).update({ status: 'empty', pendingSince: null, updatedAt: now() }).catch(() => undefined)
 

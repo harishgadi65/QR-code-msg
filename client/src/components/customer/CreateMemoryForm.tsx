@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { apiPost, ApiError } from '../../services/api'
-import { uploadFileToDrive } from '../../services/driveUpload'
+import { uploadFileToStorage } from '../../services/storageUpload'
 import { readVideoDuration } from '../../utils/videoTrim'
 import { VideoTrimmer } from './VideoTrimmer'
 import { AudioRecorder } from './AudioRecorder'
@@ -100,18 +100,23 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
 
     let claimed = false
     try {
-      // Step 1: claim the QR and get a short-lived Drive upload token.
-      const init = await apiPost<{ accessToken: string; photoFolderId?: string; videoFolderId?: string; audioFolderId?: string }>(
-        `/qr/${qrId}/upload-init`,
-        { wantsPhoto: Boolean(photoFile), wantsVideo: Boolean(videoFile), wantsAudio: Boolean(audioFile) },
-      )
+      // Step 1: claim the QR and get a short-lived signed upload URL per file.
+      const init = await apiPost<{
+        photoPath?: string
+        photoUploadUrl?: string
+        videoPath?: string
+        videoUploadUrl?: string
+        audioPath?: string
+        audioUploadUrl?: string
+      }>(`/qr/${qrId}/upload-init`, {
+        wantsPhoto: Boolean(photoFile),
+        wantsVideo: Boolean(videoFile),
+        wantsAudio: Boolean(audioFile),
+      })
       claimed = true
 
-      // Step 2: upload straight to Drive — never through our own server.
+      // Step 2: upload straight to Firebase Storage — never through our own server.
       const totalBytes = (photoFile?.size ?? 0) + (videoFile?.size ?? 0) + (audioFile?.size ?? 0)
-      let photoDriveId: string | undefined
-      let videoDriveId: string | undefined
-      let audioDriveId: string | undefined
       let uploadedSoFar = 0
 
       const trackProgress = (fileSize: number) => (pct: number) => {
@@ -119,24 +124,24 @@ export function CreateMemoryForm({ qrId, onSaved }: { qrId: string; onSaved: () 
         setProgress(Math.round(((uploadedSoFar + (fileSize * pct) / 100) / totalBytes) * 100))
       }
 
-      if (photoFile && init.photoFolderId) {
-        photoDriveId = await uploadFileToDrive(init.accessToken, init.photoFolderId, photoFile, photoFile.name, trackProgress(photoFile.size))
+      if (photoFile && init.photoUploadUrl) {
+        await uploadFileToStorage(init.photoUploadUrl, photoFile, trackProgress(photoFile.size))
         uploadedSoFar += photoFile.size
       }
-      if (videoFile && init.videoFolderId) {
-        videoDriveId = await uploadFileToDrive(init.accessToken, init.videoFolderId, videoFile, videoFile.name, trackProgress(videoFile.size))
+      if (videoFile && init.videoUploadUrl) {
+        await uploadFileToStorage(init.videoUploadUrl, videoFile, trackProgress(videoFile.size))
         uploadedSoFar += videoFile.size
       }
-      if (audioFile && init.audioFolderId) {
-        audioDriveId = await uploadFileToDrive(init.accessToken, init.audioFolderId, audioFile, audioFile.name, trackProgress(audioFile.size))
+      if (audioFile && init.audioUploadUrl) {
+        await uploadFileToStorage(init.audioUploadUrl, audioFile, trackProgress(audioFile.size))
         uploadedSoFar += audioFile.size
       }
 
-      // Step 3: confirm what landed in Drive and save the memory.
+      // Step 3: confirm what landed in Storage and save the memory.
       await apiPost(`/qr/${qrId}/finalize`, {
-        photoDriveId,
-        videoDriveId,
-        audioDriveId,
+        photoPath: init.photoPath,
+        videoPath: init.videoPath,
+        audioPath: init.audioPath,
         fromName: fromName.trim() || undefined,
         toName: toName.trim() || undefined,
         message: message.trim() || undefined,

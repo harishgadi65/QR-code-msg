@@ -2,7 +2,12 @@ import { useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import toast from 'react-hot-toast'
 import { FestiveDivider } from './FestiveDivider'
-import { audioDownloadUrl, audioProxyUrl, videoDownloadUrl, videoProxyUrl } from '../../services/api'
+import {
+  audioDownloadUrl as driveAudioDownloadUrl,
+  audioProxyUrl,
+  videoDownloadUrl as driveVideoDownloadUrl,
+  videoProxyUrl,
+} from '../../services/api'
 
 // A cross-origin URL whose response carries Content-Disposition: attachment
 // (see audioDownloadUrl/videoDownloadUrl) downloads on click without ever
@@ -83,8 +88,10 @@ export function MemoryView({
   photoUrl,
   videoUrl,
   videoDriveId,
+  videoDownloadUrl,
   audioUrl,
   audioDriveId,
+  audioDownloadUrl,
 }: {
   fromName: string | null
   toName: string | null
@@ -92,8 +99,10 @@ export function MemoryView({
   photoUrl: string | null
   videoUrl: string | null
   videoDriveId?: string | null
+  videoDownloadUrl?: string | null
   audioUrl?: string | null
   audioDriveId?: string | null
+  audioDownloadUrl?: string | null
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -106,8 +115,10 @@ export function MemoryView({
   // first — only the video/voice file came through, the card never did.
   // Requiring a distinct tap per download sidesteps that entirely.
   function handleDownloadMedia() {
-    if (videoDriveId) triggerDownload(videoDownloadUrl(videoDriveId))
-    else if (audioDriveId) triggerDownload(audioDownloadUrl(audioDriveId))
+    if (videoDriveId) triggerDownload(driveVideoDownloadUrl(videoDriveId))
+    else if (videoDownloadUrl) triggerDownload(videoDownloadUrl)
+    else if (audioDriveId) triggerDownload(driveAudioDownloadUrl(audioDriveId))
+    else if (audioDownloadUrl) triggerDownload(audioDownloadUrl)
   }
 
   async function handleDownloadCard() {
@@ -115,7 +126,7 @@ export function MemoryView({
     setDownloadingCard(true)
     let insertedFrame: HTMLImageElement | null = null
     try {
-      if (videoDriveId && videoRef.current) {
+      if (videoUrl && videoRef.current) {
         const frameDataUrl = await captureVideoFrame(videoRef.current)
         const ignoredWrapper = contentRef.current.querySelector<HTMLElement>('[data-html2canvas-ignore]')
         if (frameDataUrl && ignoredWrapper?.parentElement) {
@@ -166,7 +177,7 @@ export function MemoryView({
           {toName && <p className="vintage-label mt-4 text-xs uppercase">To</p>}
           {toName && <p className="vintage-body mt-1 text-lg font-medium">{toName}</p>}
 
-          {videoUrl && videoDriveId && (
+          {videoUrl && (
             <div className="mt-6 w-full">
               <p className="vintage-label mb-2 text-xs">🎥 Video Message</p>
               {/* html2canvas can't render live <video> content — it would just paint
@@ -176,7 +187,7 @@ export function MemoryView({
               <div data-html2canvas-ignore className="w-full overflow-hidden rounded-2xl border border-[#e3c691] bg-black">
                 <video
                   ref={videoRef}
-                  src={videoProxyUrl(videoDriveId)}
+                  src={videoDriveId ? videoProxyUrl(videoDriveId) : videoUrl}
                   controls
                   playsInline
                   preload="auto"
@@ -196,10 +207,10 @@ export function MemoryView({
             />
           )}
 
-          {audioUrl && audioDriveId && (
+          {audioUrl && (
             <div className="mt-6 w-full">
               <p className="vintage-label mb-2 text-xs">🎙️ Voice Message</p>
-              <audio src={audioProxyUrl(audioDriveId)} controls className="w-full" />
+              <audio src={audioDriveId ? audioProxyUrl(audioDriveId) : audioUrl} controls className="w-full" />
             </div>
           )}
 
@@ -212,16 +223,16 @@ export function MemoryView({
         </div>
 
         <div className="mt-6 flex w-full flex-col gap-2">
-          {(videoDriveId || audioDriveId) && (
+          {Boolean(videoUrl || audioUrl) && (
             <button onClick={handleDownloadMedia} className="vintage-btn w-full rounded-full py-3 text-sm">
-              {videoDriveId ? '⬇ Download Video' : '⬇ Download Voice Message'}
+              {videoUrl ? '⬇ Download Video' : '⬇ Download Voice Message'}
             </button>
           )}
           <button
             onClick={() => void handleDownloadCard()}
             disabled={downloadingCard}
             className={
-              videoDriveId || audioDriveId
+              videoUrl || audioUrl
                 ? 'vintage-btn-outline w-full rounded-full py-3 text-sm disabled:opacity-60'
                 : 'vintage-btn w-full rounded-full py-3 text-sm disabled:opacity-60'
             }

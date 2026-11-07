@@ -11,6 +11,24 @@ export const config = {
     refreshToken: () => required('GOOGLE_DRIVE_REFRESH_TOKEN'),
     rootFolderId: () => required('GOOGLE_DRIVE_ROOT_FOLDER_ID'),
   },
+  // New uploads go here instead of Google Drive (see services/storageService.ts) —
+  // Cloudflare R2, an S3-compatible bucket, chosen over Firebase Storage (requires
+  // the paid Blaze plan to even enable) and over Drive (its OAuth refresh token
+  // keeps expiring every 7 days while our Google app sits in "Testing" status).
+  // Existing memories already saved to Drive are left as-is; only new saves use this.
+  storage: {
+    bucketName: () => process.env.R2_BUCKET_NAME ?? 'qr-memories',
+    accountEndpoint: () => required('R2_ENDPOINT'),
+    accessKeyId: () => required('R2_ACCESS_KEY_ID'),
+    secretAccessKey: () => required('R2_SECRET_ACCESS_KEY'),
+    // The bucket's public r2.dev (or custom-domain) base URL, e.g.
+    // https://pub-xxxxxxxx.r2.dev — enabled once in the R2 bucket's Settings tab.
+    publicBaseUrl: () => required('R2_PUBLIC_BASE_URL'),
+    allowedOrigins: () =>
+      (process.env.STORAGE_CORS_ORIGINS ?? 'https://harishgadi65.github.io,http://localhost:5173,http://127.0.0.1:5173').split(
+        ',',
+      ),
+  },
   limits: {
     maxVideoDurationSeconds: Number(process.env.MAX_VIDEO_DURATION_SECONDS ?? 30),
     maxVideoSizeMb: Number(process.env.MAX_VIDEO_SIZE_MB ?? 80),

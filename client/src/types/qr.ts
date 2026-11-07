@@ -15,14 +15,20 @@ export interface QrDoc {
   toName: string | null
   message: string | null
 
+  // photoDriveId/videoDriveId/audioDriveId are set only for memories saved before
+  // the move to Firebase Storage; new saves populate the matching *StoragePath
+  // field instead and leave the driveId null (see functions/src/types/qr.ts).
   photoUrl: string | null
   photoDriveId: string | null
+  photoStoragePath: string | null
 
   videoUrl: string | null
   videoDriveId: string | null
+  videoStoragePath: string | null
 
   audioUrl: string | null
   audioDriveId: string | null
+  audioStoragePath: string | null
 
   uploaderEmail?: string | null
   uploaderName?: string | null

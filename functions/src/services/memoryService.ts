@@ -2,13 +2,20 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { db } from './firebaseAdmin'
 import {
   assertFileInFolder,
-  deleteFile,
-  downloadFile,
+  deleteFile as deleteDriveFile,
   ensureQrFolder,
   makeFilePublic,
   urlForFile,
   type DriveMediaKind,
 } from '../googleDrive/driveService'
+import { downloadFile as downloadDriveFile } from '../googleDrive/driveService'
+import {
+  deleteFile as deleteStorageFile,
+  downloadFile as downloadStorageFile,
+  getFileMetadata as getStorageFileMetadata,
+  publishFile as publishStorageFile,
+  type StorageMediaKind,
+} from './storageService'
 import {
   validatePhoto,
   validateVideoUpload,
@@ -47,11 +54,11 @@ export async function validateAndPublishDriveUpload(
     validatePhoto({ mimetype: meta.mimeType, size: meta.size })
   } else if (kind === 'video') {
     validateVideoUpload({ mimetype: meta.mimeType, size: meta.size })
-    const buffer = await downloadFile(driveId)
+    const buffer = await downloadDriveFile(driveId)
     await assertVideoWithinDuration(buffer)
   } else {
     validateAudioUpload({ mimetype: meta.mimeType, size: meta.size })
-    const buffer = await downloadFile(driveId)
+    const buffer = await downloadDriveFile(driveId)
     await assertAudioWithinDuration(buffer)
   }
 
@@ -59,17 +66,58 @@ export async function validateAndPublishDriveUpload(
   return { url: urlForFile(driveId, kind) }
 }
 
+/**
+ * Firebase Storage equivalent of validateAndPublishDriveUpload, used by every new
+ * save going forward (see routes/customerQr.ts's finalize) — Drive is kept only to
+ * serve memories that were already saved there before this moved. Unlike Drive's
+ * access-token model, a GCS v4 signed URL cryptographically authorizes a PUT to
+ * exactly the one path it was minted for, so there's no equivalent of Drive's
+ * "point an unrelated existing file at this QR" risk to guard against — the prefix
+ * check below is just defense-in-depth against a malformed/mismatched path.
+ */
+export async function validateAndPublishStorageUpload(
+  qrId: string,
+  kind: StorageMediaKind,
+  path: string,
+): Promise<{ url: string }> {
+  if (!path.startsWith(`qr-memories/${qrId}/${kind}/`)) {
+    throw new Error('File does not belong to the expected upload path')
+  }
+  const meta = await getStorageFileMetadata(path)
+
+  if (kind === 'photo') {
+    validatePhoto({ mimetype: meta.contentType, size: meta.size })
+  } else if (kind === 'video') {
+    validateVideoUpload({ mimetype: meta.contentType, size: meta.size })
+    const buffer = await downloadStorageFile(path)
+    await assertVideoWithinDuration(buffer)
+  } else {
+    validateAudioUpload({ mimetype: meta.contentType, size: meta.size })
+    const buffer = await downloadStorageFile(path)
+    await assertAudioWithinDuration(buffer)
+  }
+
+  const url = await publishStorageFile(path)
+  return { url }
+}
+
 export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<void> {
   await Promise.all([
     doc.photoDriveId
-      ? deleteFile(doc.photoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.photoDriveId}`, err))
-      : undefined,
+      ? deleteDriveFile(doc.photoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.photoDriveId}`, err))
+      : doc.photoStoragePath
+        ? deleteStorageFile(doc.photoStoragePath).catch((err) => console.error(`Failed to delete storage file ${doc.photoStoragePath}`, err))
+        : undefined,
     doc.videoDriveId
-      ? deleteFile(doc.videoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.videoDriveId}`, err))
-      : undefined,
+      ? deleteDriveFile(doc.videoDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.videoDriveId}`, err))
+      : doc.videoStoragePath
+        ? deleteStorageFile(doc.videoStoragePath).catch((err) => console.error(`Failed to delete storage file ${doc.videoStoragePath}`, err))
+        : undefined,
     doc.audioDriveId
-      ? deleteFile(doc.audioDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.audioDriveId}`, err))
-      : undefined,
+      ? deleteDriveFile(doc.audioDriveId).catch((err) => console.error(`Failed to delete Drive file ${doc.audioDriveId}`, err))
+      : doc.audioStoragePath
+        ? deleteStorageFile(doc.audioStoragePath).catch((err) => console.error(`Failed to delete storage file ${doc.audioStoragePath}`, err))
+        : undefined,
   ])
 }
 

@@ -10,8 +10,10 @@ export interface MemoryContent {
   photoDriveId: string | null
   videoUrl: string | null
   videoDriveId: string | null
+  videoDownloadUrl: string | null
   audioUrl: string | null
   audioDriveId: string | null
+  audioDownloadUrl: string | null
 }
 
 type VerifyPinResponse = MemoryContent | { status: 'expired' | 'scan_limit_reached' | 'not_found' }
