@@ -101,6 +101,38 @@ export async function validateAndPublishStorageUpload(
   return { url }
 }
 
+/**
+ * Same checks as validateAndPublishStorageUpload, for the "online order" shared
+ * QR's submissions (see routes/orderQr.ts) — a submissionId in place of a qrId,
+ * since each buyer who scans that one QR gets their own submission document
+ * rather than sharing a single QR's doc.
+ */
+export async function validateAndPublishOrderUpload(
+  submissionId: string,
+  kind: StorageMediaKind,
+  path: string,
+): Promise<{ url: string }> {
+  if (!path.startsWith(`order-qr-memories/${submissionId}/${kind}/`)) {
+    throw new Error('File does not belong to the expected upload path')
+  }
+  const meta = await getStorageFileMetadata(path)
+
+  if (kind === 'photo') {
+    validatePhoto({ mimetype: meta.contentType, size: meta.size })
+  } else if (kind === 'video') {
+    validateVideoUpload({ mimetype: meta.contentType, size: meta.size })
+    const buffer = await downloadStorageFile(path)
+    await assertVideoWithinDuration(buffer)
+  } else {
+    validateAudioUpload({ mimetype: meta.contentType, size: meta.size })
+    const buffer = await downloadStorageFile(path)
+    await assertAudioWithinDuration(buffer)
+  }
+
+  const url = await publishStorageFile(path)
+  return { url }
+}
+
 export async function deleteExistingContentFiles(doc: Partial<QrDoc>): Promise<void> {
   await Promise.all([
     doc.photoDriveId

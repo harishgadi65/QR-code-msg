@@ -9,7 +9,9 @@ import { Trash } from './pages/admin/Trash'
 import { Batches } from './pages/admin/Batches'
 import { Test } from './pages/admin/Test'
 import { Settings } from './pages/admin/Settings'
+import { OrderQr } from './pages/admin/OrderQr'
 import { MemoryPage } from './pages/customer/MemoryPage'
+import { OrderQrPage } from './pages/customer/OrderQrPage'
 
 function NotFound() {
   return (
@@ -39,8 +41,10 @@ export default function App() {
         <Route path="batches" element={<Batches />} />
         <Route path="test" element={<Test />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="order-qr" element={<OrderQr />} />
       </Route>
       <Route path="/m/:qrId" element={<MemoryPage />} />
+      <Route path="/order/:token" element={<OrderQrPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

@@ -16,6 +16,14 @@ export function qrUrlFor(token: string): string {
   return `${base}/#/m/${token}`
 }
 
+// Same idea, for the single reusable "online order" QR (see pages/admin/OrderQr.tsx)
+// — a different route since scanning it offers a choice (add vs. look up a memory)
+// instead of landing straight on one gift's status.
+export function orderQrUrlFor(token: string): string {
+  const base = import.meta.env.VITE_APP_BASE_URL?.replace(/\/$/, '') || window.location.origin
+  return `${base}/#/order/${token}`
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -25,11 +33,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-export async function qrPngDataUrl(token: string): Promise<string> {
+export async function qrPngDataUrlForUrl(url: string): Promise<string> {
   // errorCorrectionLevel 'H' tolerates up to ~30% of the code being obscured and
   // still scanning reliably — the centered "SCAN ME" plate below covers roughly
   // 11% of the image area, well inside that budget with real-world margin.
-  const baseDataUrl = await QRCode.toDataURL(qrUrlFor(token), { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
+  const baseDataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 3, errorCorrectionLevel: 'H' })
 
   const img = await loadImage(baseDataUrl)
   const size = img.width
@@ -59,6 +67,10 @@ export async function qrPngDataUrl(token: string): Promise<string> {
   ctx.fillText("Here's my message", size / 2, boxY + boxHeight * 0.72)
 
   return canvas.toDataURL('image/png')
+}
+
+export function qrPngDataUrl(token: string): Promise<string> {
+  return qrPngDataUrlForUrl(qrUrlFor(token))
 }
 
 export async function downloadQrPng(qrId: string, token: string): Promise<void> {

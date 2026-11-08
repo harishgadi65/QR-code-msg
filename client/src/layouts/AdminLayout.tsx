@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/admin/qrs', label: 'QR Bank' },
   { to: '/admin/trash', label: 'Trash' },
   { to: '/admin/batches', label: 'Batches' },
+  { to: '/admin/order-qr', label: 'Online Order QR Codes' },
   { to: '/admin/test', label: 'Test / Preview' },
   { to: '/admin/settings', label: 'Settings' },
 ]

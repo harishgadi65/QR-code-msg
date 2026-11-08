@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiGet } from '../../services/api'
-import { useAuth } from '../../hooks/useAuth'
 import { CreateMemoryForm } from '../../components/customer/CreateMemoryForm'
+import { GoogleSignInGate } from '../../components/customer/GoogleSignInGate'
 import { MemoryView } from '../../components/customer/MemoryView'
 import { PinGate, type MemoryContent } from '../../components/customer/PinGate'
 
@@ -33,45 +33,6 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
 // and the team is ready to require it before a customer can upload — see
 // functions/src/config.ts's matching REQUIRE_UPLOAD_SIGNIN flag.
 const REQUIRE_UPLOAD_SIGNIN = import.meta.env.VITE_REQUIRE_UPLOAD_SIGNIN === 'true'
-
-// Gates only the upload step, not the memory view — recipients scanning a completed
-// gift never hit this, only whoever is about to attach the photo/video/message.
-function UploadAuthGate({ children }: { children: ReactNode }) {
-  const { user, loading, loginWithGoogle, logout } = useAuth()
-
-  if (!REQUIRE_UPLOAD_SIGNIN) return <>{children}</>
-  if (loading) return <CenteredMessage emoji="⏳" title="Loading..." subtitle="" />
-
-  if (!user) {
-    return (
-      <div className="vintage-page flex flex-col items-center justify-center px-6 text-center">
-        <div className="vintage-card w-full max-w-sm p-8">
-          <div className="mb-3 text-5xl">🔒</div>
-          <h1 className="vintage-heading mb-2 text-xl">Sign in to add your memory</h1>
-          <p className="vintage-body mb-6 text-sm text-[#6b5b3d]">
-            For security, please sign in with Google before uploading a photo, video, voice message, or note to this
-            gift.
-          </p>
-          <button onClick={() => void loginWithGoogle()} className="vintage-btn w-full rounded-full px-6 py-3.5 text-sm">
-            Sign in with Google
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <div className="vintage-eyebrow relative z-10 flex items-center justify-center gap-3 border-b border-[#e3c691] bg-[#fdf0d2] px-4 py-2 text-[11px]">
-        <span>Signed in as {user.email}</span>
-        <button onClick={() => void logout()} className="underline">
-          Sign out
-        </button>
-      </div>
-      {children}
-    </>
-  )
-}
 
 export function MemoryPage() {
   const { qrId } = useParams<{ qrId: string }>()
@@ -150,9 +111,9 @@ export function MemoryPage() {
     case 'empty':
     default:
       return (
-        <UploadAuthGate>
+        <GoogleSignInGate required={REQUIRE_UPLOAD_SIGNIN}>
           <CreateMemoryForm qrId={qrId} onSaved={load} />
-        </UploadAuthGate>
+        </GoogleSignInGate>
       )
   }
 }

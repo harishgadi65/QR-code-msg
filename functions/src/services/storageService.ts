@@ -35,6 +35,12 @@ export function storagePathFor(qrId: string, kind: StorageMediaKind): string {
   return `qr-memories/${qrId}/${kind}/${randomUUID()}`
 }
 
+// Same idea, scoped under the shared "online order" QR's own submissions instead
+// of a per-gift QR's id — see routes/orderQr.ts.
+export function orderSubmissionStoragePathFor(submissionId: string, kind: StorageMediaKind): string {
+  return `order-qr-memories/${submissionId}/${kind}/${randomUUID()}`
+}
+
 // R2 enforces CORS itself (unlike Drive, which never needed this — uploads went
 // through Drive's own API with an Authorization header, not a direct cross-origin
 // PUT), so the browser's direct-to-bucket upload needs this set once. Cheap and
