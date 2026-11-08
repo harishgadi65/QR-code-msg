@@ -24,7 +24,11 @@ body {
 
 /* Pinned to the viewport (not the scrollable page) so the illustrated frame's
    corners stay put on screen even when the form content scrolls past one
-   screen's height, instead of being stretched/cropped across the whole page. */
+   screen's height, instead of being stretched/cropped across the whole page.
+   festive-bg.png is a tall (935x1683) portrait photo — fine on a phone screen
+   it was designed for, but "cover"-stretched across a wide desktop window it
+   gets cropped down to an awkward sliver. Past 820px wide, a CSS-only design
+   in the same gold/maroon palette replaces it instead of distorting the photo. */
 .vintage-page::before {
   content: "";
   position: fixed;
@@ -35,6 +39,31 @@ body {
   background-position: center top;
   background-repeat: no-repeat;
   pointer-events: none;
+}
+
+@media (min-width: 820px) {
+  .vintage-page::before {
+    background-image:
+      radial-gradient(ellipse 60% 55% at 50% 22%, rgba(255, 250, 240, 0.95), rgba(253, 243, 233, 0) 60%),
+      radial-gradient(circle at 10% 12%, rgba(176, 34, 63, 0.12), transparent 42%),
+      radial-gradient(circle at 90% 18%, rgba(214, 168, 100, 0.2), transparent 45%),
+      radial-gradient(circle at 12% 88%, rgba(214, 168, 100, 0.18), transparent 45%),
+      radial-gradient(circle at 90% 90%, rgba(176, 34, 63, 0.1), transparent 42%),
+      radial-gradient(rgba(214, 168, 100, 0.25) 1px, transparent 1.6px);
+    background-size: auto, auto, auto, auto, auto, 30px 30px;
+    background-position: center, center, center, center, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  }
+
+  .vintage-page::after {
+    content: "";
+    position: fixed;
+    inset: 20px;
+    z-index: 0;
+    border: 1px solid rgba(214, 168, 100, 0.35);
+    border-radius: 10px;
+    pointer-events: none;
+  }
 }
 
 .vintage-card {
