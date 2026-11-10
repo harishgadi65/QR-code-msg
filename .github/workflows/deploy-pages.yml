@@ -1,6 +1,7 @@
-# Retriggered after two transient deploy-pages step failures
-# ("No artifacts named github-pages were found") — retrying once more
-# with no overlapping run this time.
+# Retry attempt 4 — Pages/Environments settings confirmed clean (no
+# protection rules, correct GitHub Actions source), so the prior 3
+# failures ("No artifacts named github-pages were found") look like a
+# transient issue on GitHub's artifact service rather than our config.
 name: Deploy client to GitHub Pages
 
 on:
