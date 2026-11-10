@@ -21,6 +21,23 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
 
 type Screen = 'choice' | 'add' | 'lookup' | 'saved' | 'view'
 
+// signInWithRedirect takes the whole browser to accounts.google.com and back —
+// a full page reload, not a client-side navigation, which would otherwise wipe
+// the "I'm Sending" choice below right back to the welcome screen the instant
+// Google redirects back. Session-storage (not React state) survives that reload.
+function screenStorageKey(token: string) {
+  return `order-qr-screen:${token}`
+}
+function readStoredScreen(token: string): Screen {
+  try {
+    const stored = sessionStorage.getItem(screenStorageKey(token))
+    if (stored === 'add' || stored === 'lookup') return stored
+  } catch {
+    // ignore: private browsing or storage blocked
+  }
+  return 'choice'
+}
+
 // Landing page for the one shared "online order" QR, printed on every chocolate
 // box sold online (see pages/admin/OrderQr.tsx) — unlike /m/:qrId, which already
 // knows what a scan means from that one QR's status, this same link is scanned
@@ -28,9 +45,18 @@ type Screen = 'choice' | 'add' | 'lookup' | 'saved' | 'view'
 export function OrderQrPage() {
   const { token } = useParams<{ token: string }>()
   const [valid, setValid] = useState<boolean | null>(null)
-  const [screen, setScreen] = useState<Screen>('choice')
+  const [screen, setScreenState] = useState<Screen>(() => readStoredScreen(token ?? ''))
   const [savedCreds, setSavedCreds] = useState<{ phoneNumber: string; pin: string } | null>(null)
   const [viewedContent, setViewedContent] = useState<MemoryContent | null>(null)
+
+  const setScreen = (next: Screen) => {
+    setScreenState(next)
+    try {
+      if (token) sessionStorage.setItem(screenStorageKey(token), next)
+    } catch {
+      // ignore: private browsing or storage blocked
+    }
+  }
 
   useEffect(() => {
     if (!token) return
