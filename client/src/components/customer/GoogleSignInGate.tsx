@@ -19,7 +19,7 @@ function CenteredMessage({ emoji, title, subtitle }: { emoji: string; title: str
 // order" QR always requires it — see pages/customer/OrderQrPage.tsx) or conditional
 // on a config flag (the per-gift QR — see pages/customer/MemoryPage.tsx).
 export function GoogleSignInGate({ required, children }: { required: boolean; children: ReactNode }) {
-  const { user, loading, loginWithGoogle, logout } = useAuth()
+  const { user, loading, loginWithGoogle, logout, googleSignInError } = useAuth()
 
   if (!required) return <>{children}</>
   if (loading) return <CenteredMessage emoji="⏳" title="Loading..." subtitle="" />
@@ -36,6 +36,9 @@ export function GoogleSignInGate({ required, children }: { required: boolean; ch
           <button onClick={() => void loginWithGoogle()} className="vintage-btn w-full rounded-full px-6 py-3.5 text-sm">
             Sign in with Google
           </button>
+          {googleSignInError && (
+            <p className="mt-4 text-left text-xs break-words text-red-700">{googleSignInError}</p>
+          )}
         </div>
       </div>
     )
