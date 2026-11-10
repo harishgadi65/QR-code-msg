@@ -1,3 +1,4 @@
+# Retriggered after a transient deploy-pages step failure.
 name: Deploy client to GitHub Pages
 
 on:
