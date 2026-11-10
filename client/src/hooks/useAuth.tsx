@@ -4,6 +4,7 @@ import {
   getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   type User,
@@ -55,15 +56,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  // Redirect (not popup) because this runs on phones opening a QR link — mobile
-  // Safari/in-app browsers block or silently drop popup-based sign-in far more often.
+  // Popup first: the authDomain (qr-code-project-88924.firebaseapp.com) differs
+  // from this app's own domain, and the redirect flow's pending-sign-in state
+  // has to survive that cross-origin round trip via storage that some browsers
+  // partition away — in practice that silently drops the result, bouncing the
+  // user back to "please sign in" even after they completed it on Google's side.
+  // Popup avoids the round trip entirely (same-session postMessage instead of
+  // storage), so it's used whenever the browser allows it; redirect is only the
+  // fallback for when a popup genuinely can't open (blocked, or an environment
+  // that doesn't support popups at all, e.g. some in-app browsers).
   const loginWithGoogle = async () => {
     setGoogleSignInError(null)
+    const provider = new GoogleAuthProvider()
     try {
-      await signInWithRedirect(auth, new GoogleAuthProvider())
+      await signInWithPopup(auth, provider)
     } catch (err) {
-      console.error('signInWithRedirect failed', err)
       const code = (err as { code?: string; message?: string })?.code
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        return
+      }
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        try {
+          await signInWithRedirect(auth, provider)
+          return
+        } catch (redirectErr) {
+          console.error('signInWithRedirect fallback failed', redirectErr)
+          const redirectCode = (redirectErr as { code?: string; message?: string })?.code
+          setGoogleSignInError(
+            redirectCode ? `${redirectCode}: ${(redirectErr as { message?: string }).message}` : String(redirectErr),
+          )
+          return
+        }
+      }
+      console.error('signInWithPopup failed', err)
       setGoogleSignInError(code ? `${code}: ${(err as { message?: string }).message}` : String(err))
     }
   }
