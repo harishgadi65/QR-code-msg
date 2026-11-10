@@ -1,4 +1,6 @@
-# Retriggered after a transient deploy-pages step failure.
+# Retriggered after two transient deploy-pages step failures
+# ("No artifacts named github-pages were found") — retrying once more
+# with no overlapping run this time.
 name: Deploy client to GitHub Pages
 
 on:
